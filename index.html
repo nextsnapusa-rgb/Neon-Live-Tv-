@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Live Tv Pro</title>
+<!-- জুম বন্ধ করার জন্য ভিউপোর্ট -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Neon Live Tv</title>
 
 <!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -33,116 +34,98 @@
 }
 
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select: none; }
-body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-serif; overflow-x:hidden; }
+body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-serif; overflow-x:hidden; height: 100vh; }
 
-/* --- PROFESSIONAL SPLASH SCREEN --- */
+/* --- TV REMOTE FOCUS (TV ONLY) --- */
+@media (min-width: 992px) {
+    [tabindex="0"]:focus {
+        outline: none;
+        border: 2.5px solid var(--cyan) !important;
+        box-shadow: 0 0 25px var(--cyan);
+        transform: scale(1.05);
+        transition: 0.2s;
+        z-index: 10;
+    }
+}
+
+/* --- ORIGINAL SPLASH SCREEN --- */
 #splash-screen {
     position: fixed; inset: 0; background: #000;
     display: flex; flex-direction: column; align-items: center; 
-    justify-content: space-between; padding: 60px 0; z-index: 10000; 
-    transition: 0.8s ease-in-out;
+    justify-content: center; z-index: 10000;
 }
-.splash-top { width: 100%; text-align: center; }
-.splash-logo { 
-    width: 140px; height: 140px; object-fit: contain;
-    animation: logoFloat 3s infinite ease-in-out, logoPulse 2s infinite ease-in-out;
-}
-@keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-@keyframes logoPulse { 0%, 100% { filter: drop-shadow(0 0 5px var(--cyan)); } 50% { filter: drop-shadow(0 0 20px var(--cyan)); } }
+.splash-logo { width: 140px; height: 140px; object-fit: contain; margin-bottom: 400px; }
+.loader-bars { display: flex; align-items: flex-end; gap: 4px; height: 35px; }
+.loader-bars div { width: 6px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: bars 0.8s infinite ease-in-out; }
+.loader-bars div:nth-child(1) { height: 15px; animation-delay: 0s; }
+.loader-bars div:nth-child(2) { height: 35px; animation-delay: 0.1s; }
+.loader-bars div:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+@keyframes bars { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
+.splash-version { position: absolute; bottom: 20px; left: 20px; font-size: 10px; color: var(--dim); font-family: 'Orbitron'; }
 
-.splash-bottom { width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-.professional-loader { display: flex; align-items: center; gap: 6px; height: 30px; justify-content: center; }
-.professional-loader div { width: 5px; border-radius: 20px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: loaderBars 1s infinite ease-in-out; }
-.professional-loader div:nth-child(1) { height: 12px; animation-delay: 0.1s; }
-.professional-loader div:nth-child(2) { height: 25px; animation-delay: 0.2s; }
-.professional-loader div:nth-child(3) { height: 12px; animation-delay: 0.3s; }
-@keyframes loaderBars { 0%, 100% { transform: scaleY(1); opacity: 0.5; } 50% { transform: scaleY(2.2); opacity: 1; } }
-.splash-version { font-size: 10px; color: var(--dim); font-family: 'Orbitron'; letter-spacing: 3px; }
-.loading-bar-bg { width: 140px; height: 2px; background: #111; border-radius: 10px; overflow: hidden; }
-.loading-bar-fill { width: 30%; height: 100%; background: var(--cyan); animation: fillProgress 2s infinite linear; }
-@keyframes fillProgress { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+/* --- GRID SYSTEM (4 CHANNELS) --- */
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.card { background: var(--card-bg); border-radius: 12px; padding: 10px 4px; text-align: center; cursor: pointer; border: 1px solid #1a1a1a; position: relative; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.card img { width: 40px; height: 40px; border-radius: 8px; background: #fff; margin-bottom: 8px; object-fit: contain; }
+.card p { font-size: 9px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; padding: 0 2px; }
+
+/* --- AUTH UI & PROCESSING BARS --- */
+#auth-screen{ position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; padding:25px; z-index:9999; }
+.auth-box{ width:100%; max-width:320px; background:var(--surface); border:1px solid rgba(0,255,255,0.2); border-radius:24px; padding:30px; }
+.auth-input{ width:100%; padding:14px; margin-bottom:15px; border: 1px solid #222; border-radius:12px; background:#050505; color:#fff; outline: none; }
+.auth-btn{ width:100%; height: 52px; border:none; border-radius:12px; background: var(--cyan); color:#000; font-weight: 700; cursor:pointer; display: flex; align-items: center; justify-content: center; }
+.btn-loader { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; color: #000; }
+.loader-bars-sm { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+.loader-bars-sm div { width: 3px; background: #000; animation: bars 0.8s infinite ease-in-out; }
 
 /* UPDATE POPUP */
-#update-popup {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); 
-    z-index:20000; align-items:center; justify-content:center; padding:20px;
-}
-.popup-box {
-    background:#161616; border:1px solid var(--cyan); border-radius:24px; 
-    padding:30px; text-align:center; max-width:320px; width:100%; 
-    box-shadow: 0 0 30px rgba(0,255,255,0.2); animation: scaleIn 0.3s ease;
-}
-@keyframes scaleIn { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
+#update-popup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:20000; align-items:center; justify-content:center; padding:20px; }
+.popup-box { background:#161616; border:1px solid var(--cyan); border-radius:24px; padding:30px; text-align:center; max-width:320px; width:100%; box-shadow: 0 0 30px rgba(0,255,255,0.2); }
 
-/* TICKER */
-.ticker-container { margin-bottom: 20px; background: #000; border: 1px solid rgba(0,255,0,0.2); border-radius: 50px; height: 35px; display: flex; align-items: center; overflow: hidden; position: relative; }
-.ticker-text { white-space: nowrap; position: absolute; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; animation: ticker-scroll 18s linear infinite; padding-left: 100%; }
-@keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-/* HEADER */
+/* COMMON ELEMENTS */
 .app-header { height: 65px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 500; }
 .header-logo { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--white); }
 .header-icons { display: flex; align-items: center; gap: 15px; }
 .icon-btn { position: relative; color: var(--white); cursor: pointer; display: flex; align-items: center; }
 .badge { position: absolute; top: -8px; right: -8px; background: #ff0000; color: #fff; font-size: 9px; width: 12px; height: 12px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; }
 
-/* MATCH CARD */
 .match-card { background: var(--match-bg); border: 1px solid rgba(0,255,255,0.1); border-radius: 18px; margin-bottom: 15px; position: relative; overflow: hidden; height: 110px; display: flex; flex-direction: column; cursor: pointer; width: 100%; }
 .match-card-header { text-align: center; font-size: 8px; font-weight: 700; color: #aaa; padding-top: 8px; text-transform: uppercase; }
 .match-card-body { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
 .team { width: 35%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
-.team img { width: 40px; height: 40px; border-radius: 10px; background: #fff; padding: 2px; object-fit: contain; }
+.team img { width: 38px; height: 38px; border-radius: 10px; background: #fff; padding: 2px; object-fit: contain; }
 .team p { font-size: 10px; color: #fff; }
-.live-tag { color: var(--red); font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 3px; height: 10px; margin-bottom: 2px; }
-.blink { width: 5px; height: 5px; background: var(--red); border-radius: 50%; animation: blk 1s infinite; }
-@keyframes blk { 0% {opacity:1} 50% {opacity:0.3} 100% {opacity:1} }
 .match-time { font-size: 13px; font-family: 'Orbitron'; color: var(--cyan); font-weight: bold; }
 
-/* GRID */
-.main{ padding:20px; padding-bottom:120px; }
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.card { background: var(--card-bg); border-radius: 12px; padding: 10px 4px; text-align: center; cursor: pointer; border: 1px solid #1a1a1a; position: relative;}
-.card img { width: 35px; height: 35px; border-radius: 8px; background: #fff; margin-bottom: 5px; object-fit: contain; }
-.card p { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.ticker-container { margin-bottom: 20px; background: #000; border: 1px solid rgba(0,255,0,0.2); border-radius: 50px; height: 35px; display: flex; align-items: center; overflow: hidden; position: relative; }
+.ticker-text { white-space: nowrap; position: absolute; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; animation: ticker-scroll 18s linear infinite; padding-left: 100%; }
+@keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-/* PROFILE SECTION */
 .profile-card { background: linear-gradient(135deg, #111, #1a1a1a); padding: 25px; border-radius: 20px; border: 1px solid #222; text-align: center; margin-bottom: 25px; }
 .profile-card i { width: 45px; height: 45px; background: #000; padding: 10px; border-radius: 50%; color: var(--cyan); border: 2px solid var(--cyan); margin-bottom: 12px; }
-.membership-status { 
-    font-size: 10px; color: #fff; display: inline-flex; align-items: center; gap: 6px; 
-    margin-top: 10px; padding: 5px 15px; border: 1px solid var(--cyan); border-radius: 20px;
-    font-weight: bold; text-transform: uppercase;
-}
-.green-dot { color: var(--green-glow); font-size: 12px; line-height: 0; }
+.membership-status { font-size: 10px; color: #fff; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 5px 15px; border: 1px solid var(--cyan); border-radius: 20px; font-weight: bold; text-transform: uppercase; }
 
 .menu-item { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px; border-radius: 14px; margin-bottom: 10px; border: 1px solid #1a1a1a; cursor: pointer; }
 .menu-left { display: flex; align-items: center; gap: 15px; }
 .menu-item i { width: 18px; height: 18px; color: var(--cyan); }
 
-/* AUTH */
-.spinner { width: 18px; height: 18px; border: 2px solid #000; border-top: 2px solid transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-right: 8px; vertical-align: middle; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.bottom-nav{ position:fixed; bottom:0; width:100%; height:70px; background: rgba(10,10,10,0.95); backdrop-filter: blur(15px); display:flex; justify-content:space-around; border-top:1px solid #1a1a1a; z-index: 1000; }
+.nav{ display:flex; flex-direction:column; align-items:center; justify-content: center; font-size:10px; color:#666; flex: 1; cursor: pointer; }
+.nav.active{ color:var(--cyan); }
+.nav i{ width:22px; height:22px; margin-bottom:5px; }
 
-#auth-screen{ position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; padding:25px; z-index:9999; }
-.auth-box{ width:100%; max-width:320px; background:var(--surface); border:1px solid rgba(0,255,255,0.2); border-radius:24px; padding:30px; }
-.auth-input{ width:100%; padding:14px; margin-bottom:15px; border: 1px solid #222; border-radius:12px; background:#050505; color:#fff; outline: none; }
-.auth-btn{ width:100%; height: 52px; border:none; border-radius:12px; background: var(--cyan); color:#000; font-weight: 700; cursor:pointer; }
-
-/* VIDEO & NAV */
 .video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top:65px; z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
 video{ width:100%; height:100%; object-fit:contain; }
 #server-box { display: none; padding: 10px; background: #000; gap: 10px; justify-content: center; border-bottom: 1px solid #222; }
 .server-btn { padding: 6px 12px; background: #1a1a1a; color: #fff; border: 1px solid var(--cyan); border-radius: 5px; font-size: 11px; cursor: pointer; }
 .server-btn.active { background: var(--cyan); color: #000; font-weight: bold; }
 
-.bottom-nav{ position:fixed; bottom:0; width:100%; height:75px; background: rgba(10,10,10,0.95); backdrop-filter: blur(15px); display:flex; justify-content:space-around; border-top:1px solid #1a1a1a; z-index: 1000; }
-.nav{ display:flex; flex-direction:column; align-items:center; justify-content: center; font-size:10px; color:#666; flex: 1; cursor: pointer; }
-.nav.active{ color:var(--cyan); }
-.nav i{ width:22px; height:22px; margin-bottom:5px; }
-
+.main{ padding:20px; padding-bottom:120px; height: calc(100vh - 65px); overflow-y: auto; }
 .page{ display:none; }
 .page.active{ display:block; }
 .section-title { color: var(--white); font-family: 'Orbitron'; margin-bottom: 20px; font-size: 14px; border-left: 3px solid var(--cyan); padding-left: 10px;}
+
+.adult-auth-box { background: var(--surface); padding: 30px; border-radius: 20px; border: 1px solid var(--red); text-align: center; max-width: 300px; margin: 40px auto; }
 </style>
 </head>
 
@@ -150,22 +133,19 @@ video{ width:100%; height:100%; object-fit:contain; }
 
 <!-- SPLASH SCREEN -->
 <div id="splash-screen">
-    <div class="splash-top"><img src="https://i.ibb.co/PvK8ZF8S/20260610-225218.png" class="splash-logo"></div>
-    <div class="splash-bottom">
-        <div class="professional-loader"><div></div><div></div><div></div></div>
-        <div class="splash-version">VERSION 1.0.0</div>
-        <div class="loading-bar-bg"><div class="loading-bar-fill"></div></div>
-    </div>
+    <img src="https://i.ibb.co/PvK8ZF8S/20260610-225218.png" class="splash-logo">
+    <div class="loader-bars"><div></div><div></div><div></div></div>
+    <div class="splash-version">VERSION 1.0.0</div>
 </div>
 
 <!-- UPDATE POPUP -->
 <div id="update-popup">
-    <div class="popup-box">
+    <div class="popup-box" tabindex="0">
         <i data-lucide="download-cloud" style="width:50px; height:50px; color:var(--cyan); margin-bottom:15px; margin-left:auto; margin-right:auto;"></i>
         <h2 style="font-family:'Orbitron'; font-size:18px; margin-bottom:10px;">Update Available!</h2>
         <p style="font-size:12px; color:#aaa; margin-bottom:20px;">নতুন ভার্সন চলে এসেছে! এখনই আপডেট করুন।</p>
         <div id="new-ver-label" style="font-size:10px; color:var(--cyan); margin-bottom:20px; font-weight:bold;"></div>
-        <button id="update-confirm-btn" style="width:100%; height:50px; background:var(--cyan); color:#000; border:none; border-radius:12px; font-weight:700; cursor:pointer;">UPDATE NOW</button>
+        <button id="update-confirm-btn" class="auth-btn" style="width:100%; font-weight:700; height: 45px; background:var(--cyan); border:none; border-radius:12px; cursor:pointer;">UPDATE NOW</button>
     </div>
 </div>
 
@@ -185,7 +165,7 @@ video{ width:100%; height:100%; object-fit:contain; }
         <input type="email" id="r-email" class="auth-input" placeholder="Email address">
         <input type="password" id="r-pass" class="auth-input" placeholder="Password">
         <button class="auth-btn" id="reg-btn" onclick="register()">Create account</button>
-        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">Have account? <span style="color:cyan;cursor:pointer;" onclick="toggleAuth()">Login</span></p>
+        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">Already account? <span style="color:cyan;cursor:pointer;" onclick="toggleAuth()">Login</span></p>
     </div>
 </div>
 
@@ -193,9 +173,9 @@ video{ width:100%; height:100%; object-fit:contain; }
     <div class="app-header">
         <div class="header-logo">Neon Stream</div>
         <div class="header-icons">
-            <div class="icon-btn" onclick="switchPage('favorites')"><i data-lucide="star"></i></div>
-            <div class="icon-btn" onclick="switchPage('notifications')"><i data-lucide="bell"></i><span class="badge" id="notif-count">0</span></div>
-            <div class="icon-btn" onclick="toggleSearch()"><i data-lucide="search"></i></div>
+            <div class="icon-btn" tabindex="0" onclick="switchPage('favorites')"><i data-lucide="star"></i></div>
+            <div class="icon-btn" tabindex="0" onclick="switchPage('notifications')"><i data-lucide="bell"></i><span class="badge" id="notif-count">0</span></div>
+            <div class="icon-btn" tabindex="0" onclick="toggleSearch()"><i data-lucide="search"></i></div>
         </div>
     </div>
 
@@ -207,69 +187,67 @@ video{ width:100%; height:100%; object-fit:contain; }
     <div id="server-box"></div>
 
     <div class="main">
-        <!-- PAGE 1: HOME/EVENTS -->
         <div class="page active" id="live-events">
-            <div class="ticker-container"><div class="ticker-text" id="ticker-content">Loading...</div></div>
+            <div class="ticker-container"><div class="ticker-text" id="ticker-content">⚡ Loading...</div></div>
             <h3 class="section-title">Live events</h3>
             <div id="event-list"></div>
         </div>
 
-        <!-- PAGE 2: CATEGORIES -->
         <div class="page" id="categories">
             <div id="cat-main">
                 <h3 class="section-title">Categories</h3>
                 <div class="grid" id="category-list"></div>
             </div>
             <div id="cat-details" style="display:none;">
-                <div onclick="closeCategory()" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:14px; vertical-align:middle;"></i> Back</div>
-                <h3 id="selected-cat-title" style="font-family:'Orbitron'; font-size:14px; margin-bottom:15px;">Channels</h3>
+                <div tabindex="0" onclick="closeCategory()" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:14px; vertical-align:middle;"></i> Back</div>
+                <h3 class="section-title" id="selected-cat-title">Channels</h3>
                 <div class="grid" id="filtered-channel-list"></div>
             </div>
         </div>
 
-        <!-- PAGE 3: PROFILE -->
         <div class="page" id="settings">
             <h3 class="section-title">My Profile</h3>
             <div class="profile-card">
                 <i data-lucide="user"></i>
                 <h4 id="user-email-display">user@email.com</h4>
-                <div class="membership-status"><span class="dot">●</span> Premium Member</div>
+                <div class="membership-status"><span style="color:var(--green-glow); margin-right:5px;">●</span> Premium Member</div>
             </div>
 
-            <!-- ADULT CONTENT LOCK -->
-            <div class="menu-item" id="adult-folder-menu" style="display:none;" onclick="handleAdultAccess()">
+            <!-- ADULT FOLDER MENU ITEM -->
+            <div class="menu-item" id="adult-folder-menu" style="display:none;" tabindex="0" onclick="handleAdultLoginFlow()">
                 <div class="menu-left"><i data-lucide="user-secret"></i><span>18+ Adult Content</span></div>
                 <i data-lucide="lock" style="color:#333; width:16px;"></i>
             </div>
 
-            <div class="menu-item" onclick="checkUpdate()"><div class="menu-left"><i data-lucide="refresh-cw"></i><span>Check Update</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
-            <div class="menu-item" onclick="navigator.share({title: 'Neon Stream', url: window.location.href});"><div class="menu-left"><i data-lucide="user-plus"></i><span>Invite Friends</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
-            <div class="menu-item" onclick="window.open('https://t.me/yourtelegram','_blank')"><div class="menu-left"><i data-lucide="send"></i><span>Support</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
-            <div class="menu-item" onclick="showPrivacy()"><div class="menu-left"><i data-lucide="lock"></i><span>Privacy Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
-            <div class="menu-item" onclick="showCopyright()"><div class="menu-left"><i data-lucide="shield-check"></i><span>Copyright Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="checkUpdate()"><div class="menu-left"><i data-lucide="refresh-cw"></i><span>Check for Update</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="navigator.share({title: 'Neon Stream', url: window.location.href});"><div class="menu-left"><i data-lucide="user-plus"></i><span>Invite Friends</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="window.open('https://t.me/neonlivetv_com')"><div class="menu-left"><i data-lucide="send"></i><span>Contact Support</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="showPrivacy()"><div class="menu-left"><i data-lucide="lock"></i><span>Privacy Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="showCopyright()"><div class="menu-left"><i data-lucide="shield-check"></i><span>Copyright Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
             
             <button class="auth-btn" style="background:#ff3b3b; color:#fff; width: 100%; margin-top:20px; font-size:14px; height: 45px;" onclick="logout()">Logout From Device</button>
         </div>
 
-        <!-- HIDDEN PAGES OPENED BY HEADER ICONS -->
         <div class="page" id="favorites"><h3 class="section-title">My favorites</h3><div id="favorites-list" class="grid"></div></div>
         <div class="page" id="notifications"><h3 class="section-title">Inbox</h3><div id="notif-list-page"></div></div>
+        
         <div class="page" id="adult-content">
-            <div onclick="switchPage('settings')" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:16px; vertical-align:middle;"></i> Back</div>
+            <div tabindex="0" onclick="switchPage('settings')" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:16px; vertical-align:middle;"></i> Back</div>
             <h3 class="section-title">18+ Adult Channels</h3>
-            <div class="grid" id="adult-channel-list"></div>
+            <div id="adult-auth-section"></div>
+            <div class="grid" id="adult-channel-list" style="display:none;"></div>
         </div>
     </div>
 
-    <!-- BOTTOM NAV (3 ITEMS) -->
     <div class="bottom-nav">
-        <div class="nav active" onclick="switchPage('live-events',this)"><i data-lucide="play-circle"></i>Events</div>
-        <div class="nav" onclick="switchPage('categories',this)"><i data-lucide="layout-grid"></i>Category</div>
-        <div class="nav" onclick="switchPage('settings',this)"><i data-lucide="user"></i>Profile</div>
+        <div class="nav active" tabindex="0" onclick="switchPage('live-events',this)"><i data-lucide="play-circle"></i>Events</div>
+        <div class="nav" tabindex="0" onclick="switchPage('categories',this)"><i data-lucide="layout-grid"></i>Category</div>
+        <div class="nav" tabindex="0" onclick="switchPage('settings',this)"><i data-lucide="user"></i>Profile</div>
     </div>
 </div>
 
 <script>
+/* FIREBASE CONFIG */
 const firebaseConfig = {
     apiKey: "AIzaSyCux18LXBJW7qGF-fykIP7yEBko1_hmRBI",
     authDomain: "live-tv-admin-panel-366ce.firebaseapp.com",
@@ -286,7 +264,9 @@ let favorites = JSON.parse(localStorage.getItem('neon_favs')) || [];
 let totalNotifs = 0;
 let adultConfig = { isVisible: false, password: "" };
 
-/* AUTH & STATUS */
+const btnLoaderHTML = `<div class="btn-loader"><div class="loader-bars-sm"><div></div><div></div><div></div></div><span>Processing...</span></div>`;
+
+/* AUTH MONITOR */
 auth.onAuthStateChanged(user => {
     if(user){
         db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -295,28 +275,34 @@ auth.onAuthStateChanged(user => {
             }
             db.collection("users").doc(user.uid).update({ isOnline: true });
             document.getElementById("user-email-display").innerText = user.email;
-            loadData();
-            listenForAutoUpdate();
+            loadData(); listenForAutoUpdate();
             setTimeout(() => { 
-                const sp = document.getElementById("splash-screen");
-                sp.style.opacity = "0"; setTimeout(() => { sp.style.display="none"; document.getElementById("auth-screen").style.display="none"; document.getElementById("app").style.display="block"; lucide.createIcons(); }, 800);
-            }, 3000);
+                document.getElementById("splash-screen").style.display="none"; 
+                document.getElementById("auth-screen").style.display="none"; 
+                document.getElementById("app").style.display="block"; 
+                lucide.createIcons(); 
+            }, 2500);
         });
     } else {
         document.getElementById("splash-screen").style.display="none"; document.getElementById("app").style.display="none"; document.getElementById("auth-screen").style.display="flex";
     }
 });
 
+/* Remote Support */
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const f = document.activeElement; if (f && f.onclick) f.click(); } });
+window.addEventListener('beforeunload', () => { if(auth.currentUser) db.collection("users").doc(auth.currentUser.uid).update({ isOnline: false }); });
+
 function loadData() {
     db.collection("settings").doc("ticker").onSnapshot(doc => { if(doc.exists) document.getElementById("ticker-content").innerText = doc.data().text; });
     
-    db.collection("notifications").orderBy('timestamp', 'desc').onSnapshot(snap => {
+    // Notification listener fixed (using 'time' instead of 'timestamp' to match admin panel)
+    db.collection("notifications").orderBy('time', 'desc').onSnapshot(snap => {
         totalNotifs = snap.size;
         const lastSeen = parseInt(localStorage.getItem('notif_last') || 0);
         const badge = document.getElementById("notif-count");
         if(totalNotifs > lastSeen) { badge.innerText = totalNotifs - lastSeen; badge.style.display="flex"; } else { badge.style.display="none"; }
         const l = document.getElementById("notif-list-page"); l.innerHTML = "";
-        snap.forEach(doc => { const n = doc.data(); l.innerHTML += `<div class="notif-card"><h4>${n.title}</h4><p>${n.message}</p></div>`; });
+        snap.forEach(doc => { const n = doc.data(); l.innerHTML += `<div style="background:var(--card-bg); padding:15px; border-radius:15px; border-left:4px solid var(--cyan); margin-bottom:10px;"><h4>${n.title}</h4><p style="font-size:12px; color:#aaa;">${n.message}</p></div>`; });
     });
 
     db.collection("events").onSnapshot(snap => {
@@ -324,55 +310,76 @@ function loadData() {
         snap.forEach(doc => {
             const ev = doc.data(); const isLive = ev.status === "Live";
             if(ev.layoutType === 'single') {
-                list.innerHTML += `<div class="match-card" style="height: auto;" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')"><img src="${ev.poster}" style="width:100%; height:120px; object-fit:cover; border-radius:18px;"><div style="padding:10px; text-align:center; font-family:'Orbitron'; font-size:12px; color:var(--cyan);">${ev.headline}</div></div>`;
+                list.innerHTML += `<div class="match-card" style="height: auto;" tabindex="0" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')"><img src="${ev.poster}" style="width:100%; height:120px; object-fit:cover; border-radius:18px;"><div style="padding:10px; text-align:center; font-family:'Orbitron'; font-size:12px; color:var(--cyan);">${ev.headline}</div></div>`;
             } else {
-                list.innerHTML += `<div class="match-card" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')"><div class="match-card-header">🏆 ${ev.headline || 'FOOTBALL LIVE'}</div><div class="match-card-body"><div class="team"><img src="${ev.logoA}" class="team-logo-img"><div class="team-name-label">${ev.teamA}</div></div><div class="match-center-details"><div class="live-tag">${isLive ? '<div class="blink"></div> Live' : ''}</div><div class="match-time">${ev.time}</div></div><div class="team"><img src="${ev.logoB}" class="team-logo-img"><div class="team-name-label">${ev.teamB}</div></div></div><div style="background:rgba(0,0,0,0.4);height:22px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;">${isLive ? 'Watch Now Live' : 'Match Starts: ' + ev.time}</div></div>`;
+                list.innerHTML += `<div class="match-card" tabindex="0" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')"><div class="match-card-header">🏆 ${ev.headline || 'FOOTBALL LIVE'}</div><div class="match-card-body"><div class="team"><img src="${ev.logoA}" class="team-logo-img"><div class="team-name-label">${ev.teamA}</div></div><div class="match-center-details"><div class="live-tag">${isLive ? '<div class="blink"></div> Live' : ''}</div><div class="match-time">${ev.time}</div></div><div class="team"><img src="${ev.logoB}" class="team-logo-img"><div class="team-name-label">${ev.teamB}</div></div></div><div style="background:rgba(0,0,0,0.4);height:22px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;">${isLive ? 'Watch Now Live' : 'Match Starts at ' + ev.time}</div></div>`;
             }
         });
     });
 
     db.collection("categories").onSnapshot(snap => {
         const list = document.getElementById("category-list"); list.innerHTML = "";
-        snap.forEach(doc => { const cat = doc.data(); list.innerHTML += `<div class="card" onclick="openCategory('${cat.name}')"><img src="${cat.logo}"><p>${cat.name}</p></div>`; });
+        snap.forEach(doc => { const cat = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="openCategory('${cat.name}')"><img src="${cat.logo}"><p>${cat.name}</p></div>`; });
     });
 
     db.collection("settings").doc("adult_config").onSnapshot(doc => { if (doc.exists) { adultConfig = doc.data(); document.getElementById("adult-folder-menu").style.display = adultConfig.isVisible ? "flex" : "none"; } });
     renderFavs();
 }
 
-/* AUTO UPDATE */
+/* UPDATE LOGIC */
 function listenForAutoUpdate() {
     db.collection("settings").doc("app_config").onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.version !== CURRENT_VERSION) {
                 document.getElementById("update-popup").style.display = "flex";
-                document.getElementById("new-ver-label").innerText = "NEW VERSION: " + data.version;
+                document.getElementById("new-ver-label").innerText = "VERSION: " + data.version;
                 document.getElementById("update-confirm-btn").onclick = function() { window.open(data.link, '_blank'); };
                 lucide.createIcons();
             }
         }
     });
 }
-
 function checkUpdate() {
     db.collection("settings").doc("app_config").get().then(doc => {
         if (doc.exists && doc.data().version !== CURRENT_VERSION) { if (confirm(`Version ${doc.data().version} Available!`)) window.open(doc.data().link, '_blank'); }
-        else { alert("App is up to date! v" + CURRENT_VERSION); }
+        else alert("App is up to date! v" + CURRENT_VERSION);
     });
 }
 
-/* ADULT HANDLER */
-function handleAdultAccess() {
-    const pin = prompt("Folder is locked. Enter Security Key:");
-    if(pin === adultConfig.password) { switchPage('adult-content'); loadAdultChannels(); }
-    else if (pin !== null) alert("Incorrect Key!");
+/* ADULT LOGIN FLOW */
+function handleAdultLoginFlow() {
+    switchPage('adult-content');
+    const user = auth.currentUser;
+    db.collection("users").doc(user.uid).get().then(doc => {
+        const userData = doc.data();
+        const authArea = document.getElementById("adult-auth-section");
+        const listArea = document.getElementById("adult-channel-list");
+        if(!userData.adultPin) {
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">১৮+ ফোল্ডারের জন্য ৪ সংখ্যার একটি পিন সেট করুন।</p><input type="number" id="new-adult-pin" class="auth-input" placeholder="Set 4 Digit PIN"><button class="auth-btn" onclick="registerAdultPin()">Set PIN</button></div>`;
+            authArea.style.display = "block"; listArea.style.display = "none";
+        } else {
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">আপনার পিন নম্বরটি দিয়ে প্রবেশ করুন।</p><input type="number" id="login-adult-pin" class="auth-input" placeholder="Enter PIN"><button class="auth-btn" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
+            authArea.style.display = "block"; listArea.style.display = "none";
+        }
+    });
 }
-
+function registerAdultPin() {
+    const pin = document.getElementById("new-adult-pin").value;
+    if(pin.length < 4) return alert("PIN must be 4 digits!");
+    db.collection("users").doc(auth.currentUser.uid).update({ adultPin: pin }).then(() => { alert("PIN registered!"); handleAdultLoginFlow(); });
+}
+function verifyAdultPin(correctPin) {
+    if(document.getElementById("login-adult-pin").value === correctPin) {
+        document.getElementById("adult-auth-section").style.display = "none";
+        document.getElementById("adult-channel-list").style.display = "grid";
+        loadAdultChannels();
+    } else alert("Incorrect PIN!");
+}
 function loadAdultChannels() {
     db.collection("adult_channels").onSnapshot(snap => {
         const list = document.getElementById("adult-channel-list"); list.innerHTML = "";
-        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo}"><p>${ch.name}</p></div>`; });
+        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo}"><p>${ch.name}</p></div>`; });
     });
 }
 
@@ -381,41 +388,34 @@ function openCategory(name) {
     document.getElementById("selected-cat-title").innerText = name;
     db.collection("channels").where("category", "==", name).onSnapshot(snap => {
         const list = document.getElementById("filtered-channel-list"); list.innerHTML = "";
-        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo}"><p>${ch.name}</p></div>`; });
+        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo}"><p>${ch.name}</p></div>`; });
     });
 }
 
-/* PLAYER */
 let hlsInst = null;
 function prepareStream(u1, u2, u3) {
     const sBox = document.getElementById("server-box"); sBox.innerHTML = "";
     if (u2 || u3) {
         sBox.style.display = "flex";
-        if(u1) sBox.innerHTML += `<button class="server-btn active" onclick="play('${u1}', this)">Server 1</button>`;
-        if(u2) sBox.innerHTML += `<button class="server-btn" onclick="play('${u2}', this)">Server 2</button>`;
-        if(u3) sBox.innerHTML += `<button class="server-btn" onclick="play('${u3}', this)">Server 3</button>`;
-    } else { sBox.style.display = "none"; }
+        if(u1) sBox.innerHTML += `<button class="server-btn active" tabindex="0" onclick="play('${u1}', this)">Server 1</button>`;
+        if(u2) sBox.innerHTML += `<button class="server-btn" tabindex="0" onclick="play('${u2}', this)">Server 2</button>`;
+        if(u3) sBox.innerHTML += `<button class="server-btn" tabindex="0" onclick="play('${u3}', this)">Server 3</button>`;
+    } else sBox.style.display = "none";
     play(u1);
 }
-
 function play(url, btn) {
     if(!url) return;
     if(btn) { document.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
     const vCont = document.querySelector(".video-container"), vid = document.getElementById("video");
     vCont.style.display = "block"; if(hlsInst) hlsInst.destroy();
-    if(Hls.isSupported()){ hlsInst = new Hls(); hlsInst.loadSource(url); hlsInst.attachMedia(vid); hlsInst.on(Hls.Events.MANIFEST_PARSED, () => vid.play()); } 
+    if(Hls.isSupported()){ hlsInst = new Hls(); hlsInst.loadSource(url); hlsInst.attachMedia(vid); hlsInst.on(Hls.Events.MANIFEST_PARSED,()=>vid.play()); } 
     else { vid.src = url; vid.play(); }
     window.scrollTo({top:0, behavior:'smooth'});
 }
+function stopStream() { const c = document.querySelector(".video-container"), v = document.getElementById("video"); if(c && c.style.display === "block") { v.pause(); v.src = ""; if(hlsInst) hlsInst.destroy(); c.style.display = "none"; document.getElementById("server-box").style.display = "none"; } }
 
-function stopStream() { 
-    const cont = document.querySelector(".video-container"); const vid = document.getElementById("video"); 
-    if(cont && cont.style.display === "block") { vid.pause(); vid.src = ""; if(hlsInst) hlsInst.destroy(); cont.style.display = "none"; document.getElementById("server-box").style.display = "none"; } 
-}
-
-/* UI UTILS */
 function switchPage(id, el){
-    if(id === 'settings' || id === 'adult-content') stopStream(); 
+    if(id === 'settings' || id === 'adult-content' || id === 'favorites' || id === 'notifications') stopStream(); 
     if(id === 'notifications') { localStorage.setItem('notif_last', totalNotifs); document.getElementById("notif-count").style.display="none"; }
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.getElementById(id).classList.add("active");
@@ -431,28 +431,20 @@ function filterItems() { const q = document.getElementById("search-input").value
 function logout(){ if(confirm('Logout?')) { db.collection("users").doc(auth.currentUser.uid).update({ isOnline: false }).then(() => auth.signOut()); } }
 function closeCategory() { document.getElementById("cat-main").style.display = "block"; document.getElementById("cat-details").style.display = "none"; }
 function toggleAuth(){ document.getElementById("login-box").style.display = document.getElementById("login-box").style.display === "none" ? "block" : "none"; document.getElementById("register-box").style.display = document.getElementById("register-box").style.display === "none" ? "block" : "none"; }
-function showCopyright() { alert("Copyright Disclaimer:\n\nNeon Live TV does not host any videos on its servers. This application only provides links to publicly available IPTV streams on the internet. All rights belong to their respective owners."); }
-function showPrivacy() { alert("Privacy Policy:\n\nNeon Stream respects your privacy. We do not collect or share personal information with third parties."); }
 
-async function login(){
-    const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value;
-    if(!e || !p) return alert("Fill all!");
-    btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Signing in...`;
-    auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; });
-}
-async function register(){ 
-    const btn = document.getElementById("reg-btn"), e = document.getElementById("r-email").value, n = document.getElementById("r-name").value, p = document.getElementById("r-pass").value;
-    if(!n || !e || !p) return alert("Fill all!");
-    btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Creating...`;
-    auth.createUserWithEmailAndPassword(e, p).then(res => { db.collection("users").doc(res.user.uid).set({name:n, email:e, status:"active", isOnline: true}); }).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Create Account"; });
-}
-function forgotPassword() { const e = document.getElementById("l-email").value; if(!e) return alert("Enter email first."); auth.sendPasswordResetEmail(e).then(() => alert("Reset link sent!")).catch(e => alert(e.message)); }
+function showCopyright() { alert("Copyright Disclaimer:\n\Neon Live TV does not host or own any video content. All live streams, logos, trademarks, and media belong to their respective owners. We only provide access to publicly available content from third-party sources. If you are the copyright owner and believe any content infringes your rights, please contact us. We will review and remove the reported content promptly if necessary."); }
+function showPrivacy() { alert("Privacy Policy:\n\ Neon Live TV respects your privacy. We do not collect or store personal information unless required to provide app functionality. The app may use third-party services such as Firebase for analytics, authentication, or notifications. These services may collect limited technical information according to their own privacy policies. By using this app, you agree to this Privacy Policy."); }
 
 function renderFavs() {
     const list = document.getElementById("favorites-list"); list.innerHTML = "";
     if(favorites.length === 0) list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center;'>Empty.</p>";
-    favorites.forEach(f => { list.innerHTML += `<div class="card" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo}"><p>${f.name}</p></div>`; });
+    favorites.forEach(f => { list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo}"><p>${f.name}</p></div>`; });
 }
+
+async function login(){ const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value; if(!e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; }); }
+async function register(){ const btn = document.getElementById("reg-btn"), e = document.getElementById("r-email").value, n = document.getElementById("r-name").value, p = document.getElementById("r-pass").value; if(!n || !e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.createUserWithEmailAndPassword(e, p).then(res => { db.collection("users").doc(res.user.uid).set({name:n, email:e, status:"active", isOnline: true}); }).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Create Account"; }); }
+function forgotPassword() { const e = document.getElementById("l-email").value; if(!e) return alert("Enter email first."); auth.sendPasswordResetEmail(e).then(() => alert("Reset link sent!")).catch(e => alert(e.message)); }
+
 window.onload = () => lucide.createIcons();
 </script>
 </body>
