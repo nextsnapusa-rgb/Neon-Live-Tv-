@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Viewport to disable zoom -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Neon Live Tv</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- HLS.js -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- ArtPlayer -->
+<script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+<style>
+:root{
+    --bg:#030303;
+    --surface:#0f0f0f;
+    --cyan:#00ffff;
+    --white:#ffffff;
+    --dim:#777777;
+    --card-bg:#161616;
+    --red: #ff4757;
+    --match-bg: #101820; 
+    --green-glow: #00ff00;
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select: none; }
+body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-serif; overflow-x:hidden; height: 100vh; }
+
+/* --- TV REMOTE FOCUS (TV ONLY) --- */
+@media (min-width: 992px) {
+    [tabindex="0"]:focus {
+        outline: none;
+        border: 2.5px solid var(--cyan) !important;
+        box-shadow: 0 0 25px var(--cyan);
+        transform: scale(1.05);
+        transition: 0.2s;
+        z-index: 10;
+    }
+}
+
+/* --- ORIGINAL SPLASH SCREEN --- */
+#splash-screen {
+    position: fixed; inset: 0; background: #000;
+    display: flex; flex-direction: column; align-items: center; 
+    justify-content: center; z-index: 10000;
+}
+.splash-logo { width: 130px; height: 130px; object-fit: contain; margin-bottom: 400px; }
+.loader-bars { display: flex; align-items: flex-end; gap: 4px; height: 35px; }
+.loader-bars div { width: 6px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: bars 0.8s infinite ease-in-out; }
+.loader-bars div:nth-child(1) { height: 15px; animation-delay: 0s; }
+.loader-bars div:nth-child(2) { height: 35px; animation-delay: 0.1s; }
+.loader-bars div:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+@keyframes bars { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
+.splash-version { position: absolute; bottom: 20px; left: 20px; font-size: 10px; color: var(--dim); font-family: 'Orbitron'; }
+
+/* --- GRID SYSTEM (4 CHANNELS) --- */
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.card { background: var(--card-bg); border-radius: 12px; padding: 10px 4px; text-align: center; cursor: pointer; border: 1px solid rgba(0,255,255,0.35); box-shadow: 0 0 6px rgba(0,255,255,0.15), inset 0 0 6px rgba(0,255,255,0.05); position: relative; height: 105px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; transition: 0.25s; }
+.card:active, .card:hover { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,255,255,0.35), inset 0 0 8px rgba(0,255,255,0.1); }
+.card.is-fav { border-color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.35), inset 0 0 6px rgba(255,215,0,0.1); }
+.card.is-fav::after { content: "★"; position: absolute; top: 4px; right: 7px; color: #ffd700; font-size: 12px; text-shadow: 0 0 5px rgba(255,215,0,0.8); }
+
+/* TOAST NOTIFICATIONS */
+#toast-container { position: fixed; top: 15px; left: 0; right: 0; z-index: 15000; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; padding: 0 20px; }
+.toast { background: rgba(15,15,15,0.95); border: 1px solid var(--cyan); color: #fff; font-size: 12px; padding: 10px 18px; border-radius: 30px; box-shadow: 0 0 15px rgba(0,255,255,0.2); animation: toast-in 0.25s ease; max-width: 320px; text-align: center; }
+.toast.warning { border-color: var(--red); box-shadow: 0 0 15px rgba(255,71,87,0.35); }
+@keyframes toast-in { from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
+.card img { width: 40px; height: 40px; border-radius: 50%; background: #fff; margin-bottom: 8px; object-fit: cover; }
+.card p { font-size: 9px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; padding: 0 2px; }
+/* --- SLIDING TEXT for names longer than 10 characters --- */
+.marquee-wrap { display:block; width:100%; overflow:hidden; }
+.marquee-inner { display:inline-block; white-space:nowrap; animation: marquee-slide 5s linear infinite; }
+@keyframes marquee-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* --- AUTH UI & PROCESSING BARS --- */
+#auth-screen{ position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; padding:25px; z-index:9999; }
+.auth-box{ width:100%; max-width:320px; background:var(--surface); border:1px solid rgba(0,255,255,0.2); border-radius:24px; padding:30px; }
+.auth-input{ width:100%; padding:14px; margin-bottom:15px; border: 1px solid #222; border-radius:12px; background:#050505; color:#fff; outline: none; }
+.auth-btn{ width:100%; height: 52px; border:none; border-radius:12px; background: var(--cyan); color:#000; font-weight: 700; cursor:pointer; display: flex; align-items: center; justify-content: center; }
+.btn-loader { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; color: #000; }
+.loader-bars-sm { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+.loader-bars-sm div { width: 3px; background: #000; animation: bars 0.8s infinite ease-in-out; }
+
+/* UPDATE POPUP */
+#update-popup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:20000; align-items:center; justify-content:center; padding:20px; }
+.popup-box { background:#161616; border:1px solid var(--cyan); border-radius:24px; padding:30px; text-align:center; max-width:320px; width:100%; box-shadow: 0 0 30px rgba(0,255,255,0.2); }
+
+/* COMMON ELEMENTS */
+.app-header { height: 65px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 500; }
+.header-logo { font-family: 'Orbitron', sans-serif; font-size: 22px; color: var(--white); letter-spacing: 0.5px; }
+.header-icons { display: flex; align-items: center; gap: 15px; }
+.icon-btn { position: relative; color: var(--white); cursor: pointer; display: flex; align-items: center; }
+.badge { position: absolute; top: -8px; right: -8px; background: #ff0000; color: #fff; font-size: 9px; width: 12px; height: 12px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; }
+
+/* --- EVENT CATEGORY & STATUS FILTERS --- */
+.live-fixed-top { position: sticky; top: 0; z-index: 50; background: var(--bg); padding-bottom: 4px; }
+.cat-filter-row { display:flex; gap:20px; overflow-x:auto; padding: 4px 2px 10px; margin-bottom: 4px; scrollbar-width: none; }
+.cat-filter-row::-webkit-scrollbar { display:none; }
+.cat-filter-item { display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; cursor:pointer; }
+.cat-filter-circle { width:44px; height:44px; border-radius:50%; border:2px solid #333; display:flex; align-items:center; justify-content:center; position:relative; background:#111; transition:0.2s; }
+.cat-filter-item.active .cat-filter-circle { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,255,255,0.45); }
+.cat-filter-circle i { width:22px; height:22px; color:#fff; }
+.cat-filter-circle span.emoji { font-size:21px; line-height:1; }
+.cat-filter-count { position:absolute; top:-4px; right:-4px; background: var(--red); color:#fff; font-size:10px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; border: 2px solid var(--bg); }
+.cat-filter-label { font-size:12px; color:#ccc; }
+.cat-filter-item.active .cat-filter-label { color: var(--cyan); font-weight:700; }
+
+.status-filter-row { display:flex; gap:8px; overflow-x:auto; padding: 2px 2px 8px; margin-bottom: 8px; scrollbar-width: none; }
+.status-filter-row::-webkit-scrollbar { display:none; }
+.status-chip { flex-shrink:0; padding:9px 16px; border-radius:30px; border:1.5px solid #333; font-size:12px; color:#ccc; display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; background:#0c0c0c; }
+.status-chip.active { border-color: var(--cyan); color:#fff; background: rgba(0,255,255,0.08); }
+.status-chip i { width:13px; height:13px; color: var(--cyan); }
+
+/* --- EVENT / MATCH CARD (redesigned, compact) --- */
+.match-card2 { position:relative; background: var(--match-bg); border: 1.5px solid rgba(0,255,255,0.35); border-radius: 14px; margin: 10px -8px 8px; overflow: visible; cursor:pointer; transition: 0.2s; }
+.match-card2.live { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,255,255,0.3); }
+.match-card2.finished { opacity: 0.5; }
+.league-pill { position:absolute; top:-12px; left:50%; transform: translateX(-50%); background:#000; border:1px solid rgba(0,255,255,0.3); color:#fff; font-size:10px; font-weight:700; padding:5px 14px; border-radius:20px; white-space:nowrap; max-width:88%; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:5px; z-index:2; }
+.league-icon { width:12px; height:12px; object-fit:contain; border-radius:3px; }
+.hot-ribbon { position:absolute; top:12px; right:-30px; background: var(--red); color:#fff; font-size:9px; font-weight:700; padding:3px 32px; transform: rotate(45deg); z-index:3; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.live-badge-corner { position:absolute; top:10px; right:10px; background: rgba(255,71,87,0.15); border: 1px solid var(--red); color: var(--red); font-size:10px; font-weight:800; padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:5px; z-index:2; }
+.mc2-body { display:flex; align-items:center; justify-content:space-between; padding: 20px 20px 10px; }
+.mc2-team { width:32%; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
+.mc2-team img { width:48px; height:48px; border-radius:50%; background:#fff; padding:2px; object-fit:cover; }
+.mc2-team p { font-size:10px; color:#fff; font-weight:600; }
+.mc2-center { text-align:center; padding: 0 4px; }
+.mc2-time { font-family:'Orbitron'; font-size:13px; color:#fff; font-weight:700; }
+.mc2-date { font-size:10px; color: var(--cyan); margin-top:4px; }
+.mc2-status { text-align:center; font-size:10px; font-weight:700; padding:7px; border-top:1px solid rgba(255,255,255,0.08); color:#ccc; text-transform:uppercase; letter-spacing:0.5px; border-radius:0 0 14px 14px; }
+.mc2-status.live { color: var(--red); }
+.mc2-status.finished { color:#666; }
+.live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--red); margin-right:5px; animation: blink-dot 1s infinite; }
+@keyframes blink-dot { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+.mc2-live-timer { text-align:center; }
+.mc2-live-timer .live-label { color: var(--red); font-size: 10px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:4px; }
+.mc2-live-timer .live-clock { font-family:'Orbitron'; font-size: 15px; color:#fff; font-weight:700; margin-top: 4px; }
+
+.ticker-container { margin-bottom: 20px; background: #000; border: 1px solid rgba(0,255,0,0.2); border-radius: 50px; height: 35px; display: flex; align-items: center; overflow: hidden; position: relative; }
+.ticker-text { white-space: nowrap; position: absolute; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; animation: ticker-scroll 18s linear infinite; padding-left: 100%; }
+@keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+.profile-card { background: linear-gradient(135deg, #111, #1a1a1a); padding: 25px; border-radius: 20px; border: 1px solid #222; text-align: center; margin-bottom: 25px; }
+.profile-card i { width: 45px; height: 45px; background: #000; padding: 10px; border-radius: 50%; color: var(--cyan); border: 2px solid var(--cyan); margin-bottom: 12px; }
+.membership-status { font-size: 10px; color: #fff; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 5px 15px; border: 1px solid var(--cyan); border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+
+.profile-photo-wrap { position: relative; width: 80px; height: 80px; margin: 0 auto 14px; }
+.profile-photo { width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--cyan); background: #000 center/cover no-repeat; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.profile-photo i { width: 36px; height: 36px; padding: 0; margin: 0; border: none; background: none; }
+.profile-photo-edit { position: absolute; bottom: -2px; right: -2px; width: 26px; height: 26px; background: var(--cyan); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #111; }
+.profile-photo-edit i { width: 13px; height: 13px; color: #000; }
+.profile-name { font-family: 'Orbitron'; font-size: 15px; margin-bottom: 4px; }
+.profile-email { font-size: 11px; color: var(--dim); }
+
+.menu-item { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px; border-radius: 14px; margin-bottom: 10px; border: 1px solid #1a1a1a; cursor: pointer; }
+.menu-left { display: flex; align-items: center; gap: 15px; }
+.menu-item i { width: 18px; height: 18px; color: var(--cyan); }
+
+.bottom-nav{ position:fixed; bottom:0; width:100%; height:70px; background: rgba(10,10,10,0.95); backdrop-filter: blur(15px); display:flex; justify-content:space-around; border-top:1px solid #1a1a1a; z-index: 1000; }
+.nav{ display:flex; flex-direction:column; align-items:center; justify-content: center; font-size:10px; color:#666; flex: 1; cursor: pointer; }
+.nav.active{ color:var(--cyan); }
+.nav i{ width:22px; height:22px; margin-bottom:5px; }
+
+.video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top:65px; z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
+#artplayer-app{ width:100%; height:100%; }
+/* --- ArtPlayer theme override (match neon cyan theme) --- */
+.art-video-player{ --art-theme: #00ffff; }
+.art-video-player .art-progress .art-progress-loaded{ background: rgba(0,255,255,0.3); }
+.art-video-player .art-progress .art-progress-played{ background: var(--cyan); }
+.art-video-player .art-progress .art-progress-indicator{ background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.art-video-player .art-controls{ background: linear-gradient(0deg, rgba(0,0,0,0.75), transparent); }
+/* --- Fix: make ArtPlayer truly fill the screen in fullscreen (native + web fallback) --- */
+.video-container:fullscreen, .video-container:-webkit-full-screen { aspect-ratio: unset !important; width:100vw !important; height:100vh !important; }
+.art-video-player.art-fullscreen,
+.art-video-player.art-fullscreen-web{
+    width:100vw !important;
+    height:100vh !important;
+    aspect-ratio: unset !important;
+}
+.art-video-player.art-fullscreen .art-video,
+.art-video-player.art-fullscreen-web .art-video{
+    width:100% !important;
+    height:100% !important;
+    object-fit: contain;
+}
+/* --- Custom swipe gesture indicator (volume / brightness / seek) --- */
+#gesture-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.75); color:#fff; padding:10px 18px; border-radius:30px; font-size:14px; font-weight:700; display:none; align-items:center; gap:8px; z-index:250; pointer-events:none; border:1px solid var(--cyan); }
+video{ width:100%; height:100%; object-fit:contain; }
+#server-box { display: none; padding: 10px; background: #000; gap: 10px; justify-content: center; border-bottom: 1px solid #222; }
+.server-btn { padding: 6px 12px; background: #1a1a1a; color: #fff; border: 1px solid var(--cyan); border-radius: 5px; font-size: 11px; cursor: pointer; }
+.server-btn.active { background: var(--cyan); color: #000; font-weight: bold; }
+
+.main{ padding:20px; padding-bottom:120px; height: calc(100vh - 65px); overflow-y: auto; }
+.page{ display:none; }
+.page.active{ display:block; }
+.section-title { color: var(--white); font-family: 'Orbitron'; margin-bottom: 20px; font-size: 14px; border-left: 3px solid var(--cyan); padding-left: 10px;}
+
+.adult-auth-box { background: var(--surface); padding: 30px; border-radius: 20px; border: 1px solid var(--red); text-align: center; max-width: 300px; margin: 40px auto; }
+
+/* --- QUALITY TOGGLE SWITCH --- */
+.toggle-switch { position: relative; width: 44px; height: 24px; background: #333; border-radius: 20px; transition: 0.3s; flex-shrink: 0; }
+.toggle-switch.on { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+.toggle-switch::after { content:""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: 0.3s; }
+.toggle-switch.on::after { left: 23px; background:#000; }
+</style>
+</head>
+
+<body>
+
+<div id="toast-container"></div>
+
+<!-- SPLASH SCREEN -->
+<div id="splash-screen">
+    <img src="https://i.ibb.co/PvK8ZF8S/20260610-225218.png" class="splash-logo">
+    <div class="loader-bars"><div></div><div></div><div></div></div>
+    <div class="splash-version">VERSION 1.0.0</div>
+</div>
+
+<!-- UPDATE POPUP -->
+<div id="update-popup">
+    <div class="popup-box" tabindex="0">
+        <i data-lucide="download-cloud" style="width:50px; height:50px; color:var(--cyan); margin-bottom:15px; margin-left:auto; margin-right:auto;"></i>
+        <h2 style="font-family:'Orbitron'; font-size:18px; margin-bottom:10px;">Update Available!</h2>
+        <p style="font-size:12px; color:#aaa; margin-bottom:20px;">A new version is available! Please update now.</p>
+        <div id="new-ver-label" style="font-size:10px; color:var(--cyan); margin-bottom:20px; font-weight:bold;"></div>
+        <button id="update-confirm-btn" class="auth-btn" style="width:100%; font-weight:700; height: 45px; background:var(--cyan); border:none; border-radius:12px; cursor:pointer;">UPDATE NOW</button>
+    </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+    <div class="auth-box" id="login-box">
+        <h2 style="text-align:center; margin-bottom:20px; font-family:'Orbitron';">Login</h2>
+        <input type="email" id="l-email" class="auth-input" placeholder="Email address">
+        <input type="password" id="l-pass" class="auth-input" placeholder="Password">
+        <p style="text-align:right; font-size:11px; margin-top:-10px; margin-bottom:15px;"><span style="color:var(--dim); cursor:pointer;" onclick="forgotPassword()">Forgot Password?</span></p>
+        <button class="auth-btn" id="login-btn" onclick="login()">Sign in</button>
+        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">No account? <span style="color:var(--cyan);cursor:pointer;" onclick="toggleAuth()">Register</span></p>
+    </div>
+    <div class="auth-box" id="register-box" style="display:none;">
+        <h2 style="text-align:center; margin-bottom:20px; font-family:'Orbitron';">Register</h2>
+        <input type="text" id="r-name" class="auth-input" placeholder="Full name">
+        <input type="email" id="r-email" class="auth-input" placeholder="Email address">
+        <input type="password" id="r-pass" class="auth-input" placeholder="Password">
+        <button class="auth-btn" id="reg-btn" onclick="register()">Create account</button>
+        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">Already account? <span style="color:cyan;cursor:pointer;" onclick="toggleAuth()">Login</span></p>
+    </div>
+</div>
+
+<div id="app" style="display:none;">
+    <div class="app-header">
+        <div class="header-logo"><span style="color:var(--cyan);">Neon</span> <span style="color:#fff;">Live</span> <span style="color:#ffb300;">Tv</span></div>
+        <div class="header-icons">
+            <div class="icon-btn" tabindex="0" onclick="switchPage('favorites')"><i data-lucide="star"></i></div>
+            <div class="icon-btn" tabindex="0" onclick="switchPage('notifications')"><i data-lucide="bell"></i><span class="badge" id="notif-count">0</span></div>
+            <div class="icon-btn" tabindex="0" onclick="toggleSearch()"><i data-lucide="search"></i></div>
+        </div>
+    </div>
+
+    <div id="search-container" style="display:none; padding:12px; background:#000; border-bottom:1px solid #222;">
+        <input type="text" id="search-input" class="auth-input" style="width:100%; border-radius:10px; margin-bottom:0;" placeholder="Search..." onkeyup="filterItems()">
+    </div>
+
+    <div class="video-container"><div id="artplayer-app"></div></div>
+    <div id="server-box"></div>
+
+    <div class="main">
+        <div class="page active" id="live-events">
+            <div class="live-fixed-top">
+                <div class="ticker-container"><div class="ticker-text" id="ticker-content">⚡ Loading...</div></div>
+                <div class="cat-filter-row" id="event-cat-filter"></div>
+                <div class="status-filter-row" id="event-status-filter"></div>
+            </div>
+            <div id="event-list"></div>
+        </div>
+
+        <div class="page" id="categories">
+            <div id="cat-main">
+                <h3 class="section-title">Categories</h3>
+                <div class="grid" id="category-list"></div>
+            </div>
+            <div id="cat-details" style="display:none;">
+                <div tabindex="0" onclick="closeCategory()" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:14px; vertical-align:middle;"></i> Back</div>
+                <h3 class="section-title" id="selected-cat-title">Channels</h3>
+                <div class="grid" id="filtered-channel-list"></div>
+            </div>
+        </div>
+
+        <div class="page" id="settings">
+            <h3 class="section-title">My Profile</h3>
+            <div class="profile-card">
+                <div class="profile-photo-wrap">
+                    <div class="profile-photo" id="profile-photo"><i data-lucide="user"></i></div>
+                    <div class="profile-photo-edit" tabindex="0" onclick="document.getElementById('profile-photo-input').click()"><i data-lucide="camera"></i></div>
+                    <input type="file" id="profile-photo-input" accept="image/*" style="display:none" onchange="setProfilePhoto(event)">
+                </div>
+                <h4 class="profile-name" id="user-name-display">User</h4>
+                <p class="profile-email" id="user-email-display">user@email.com</p>
+                <div class="membership-status"><span style="color:var(--green-glow); margin-right:5px;">●</span> Premium Member</div>
+            </div>
+
+            <!-- LIVE SCOREBOARD MENU ITEM -->
+            <div class="menu-item" tabindex="0" onclick="window.open('https://www.livescore.com/en/cricket/', '_blank')">
+                <div class="menu-left"><i data-lucide="activity"></i><span>Live Scoreboard</span></div>
+                <i data-lucide="chevron-right" style="color:#333; width:14px;"></i>
+            </div>
+
+            <!-- ENABLE LOW QUALITY MENU ITEM -->
+            <div class="menu-item" tabindex="0" onclick="toggleLowQuality()">
+                <div class="menu-left"><i data-lucide="gauge"></i><span>Enable Low Quality</span></div>
+                <div class="toggle-switch" id="quality-toggle"></div>
+            </div>
+
+            <!-- ADULT FOLDER MENU ITEM -->
+            <div class="menu-item" id="adult-folder-menu" style="display:none;" tabindex="0" onclick="handleAdultLoginFlow()">
+                <div class="menu-left"><i data-lucide="user-secret"></i><span>18+ Adult Content</span></div>
+                <i data-lucide="lock" style="color:#333; width:16px;"></i>
+            </div>
+
+            <div class="menu-item" tabindex="0" onclick="checkUpdate()"><div class="menu-left"><i data-lucide="refresh-cw"></i><span>Check for Update</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="navigator.share({title: 'Neon Stream', url: window.location.href});"><div class="menu-left"><i data-lucide="user-plus"></i><span>Invite Friends</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="window.open('https://t.me/neonlivetv_com')"><div class="menu-left"><i data-lucide="send"></i><span>Contact Support</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="showPrivacy()"><div class="menu-left"><i data-lucide="lock"></i><span>Privacy Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            <div class="menu-item" tabindex="0" onclick="showCopyright()"><div class="menu-left"><i data-lucide="shield-check"></i><span>Copyright Policy</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+
+            <!-- EXIT APP MENU ITEM -->
+            <div class="menu-item" tabindex="0" onclick="exitApp()"><div class="menu-left"><i data-lucide="log-out"></i><span>Exit App</span></div><i data-lucide="chevron-right" style="color:#333; width:14px;"></i></div>
+            
+            <button class="auth-btn" style="background:#ff3b3b; color:#fff; width: 100%; margin-top:20px; font-size:14px; height: 45px;" onclick="logout()">Logout From Device</button>
+        </div>
+
+        <div class="page" id="favorites"><h3 class="section-title">My favorites</h3><div id="favorites-list" class="grid"></div></div>
+        <div class="page" id="notifications"><h3 class="section-title">Inbox</h3><div id="notif-list-page"></div></div>
+        
+        <div class="page" id="adult-content">
+            <div tabindex="0" onclick="switchPage('settings')" style="color:var(--cyan); margin-bottom:20px; cursor:pointer;"><i data-lucide="arrow-left" style="width:16px; vertical-align:middle;"></i> Back</div>
+            <h3 class="section-title">18+ Adult Channels</h3>
+            <div id="adult-auth-section"></div>
+            <div class="grid" id="adult-channel-list" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav active" tabindex="0" onclick="switchPage('live-events',this)"><i data-lucide="play-circle"></i>Events</div>
+        <div class="nav" tabindex="0" onclick="switchPage('categories',this)"><i data-lucide="layout-grid"></i>Category</div>
+        <div class="nav" tabindex="0" onclick="switchPage('settings',this)"><i data-lucide="user"></i>Profile</div>
+    </div>
+</div>
+
+<script>
+/* FIREBASE CONFIG */
+const firebaseConfig = {
+    apiKey: "AIzaSyCux18LXBJW7qGF-fykIP7yEBko1_hmRBI",
+    authDomain: "live-tv-admin-panel-366ce.firebaseapp.com",
+    projectId: "live-tv-admin-panel-366ce",
+    storageBucket: "live-tv-admin-panel-366ce.firebasestorage.app",
+    messagingSenderId: "593711709165",
+    appId: "1:593711709165:web:7de95cc0e6f2b8da3dc5e4"
+};
+
+const CURRENT_VERSION = "1.0.0";
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(), db = firebase.firestore();
+let favorites = JSON.parse(localStorage.getItem('neon_favs')) || [];
+let totalNotifs = 0;
+let adultConfig = { isVisible: false, password: "" };
+
+/* --- PUSH NOTIFICATIONS (Firebase Cloud Messaging) --- */
+// এই VAPID key-টা বসাতে হবে: Firebase Console > Project Settings > Cloud Messaging > Web Push certificates > Generate key pair
+const VAPID_KEY = "BPiqkdKL3_G__QRzc8NvNJPkUWAhqzRmfH4V_qMHaSRXwtY7i3GNSUpOuk9C3h1RgGcc3kEO6WYjQ7umEalX6H0";
+let messaging = null;
+try { if (firebase.messaging && firebase.messaging.isSupported()) messaging = firebase.messaging(); }
+catch (e) { console.log('FCM not supported on this browser'); }
+
+async function enablePushNotifications() {
+    if (!messaging) return;
+    if (VAPID_KEY === "PASTE_YOUR_VAPID_KEY_HERE") { console.log('VAPID key set korte hobe FCM chalu korar age'); return; }
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+        if (token) {
+            await db.collection('fcm_tokens').doc(token).set({
+                token: token,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+            localStorage.setItem('fcm_enabled', 'true');
+        }
+    } catch (err) { console.error('FCM token error:', err); }
+}
+
+// অ্যাপ খোলা অবস্থায় (foreground) নতুন পুশ নোটিফিকেশন এলে টোস্ট দেখাবে
+if (messaging) {
+    messaging.onMessage((payload) => {
+        const title = (payload.notification && payload.notification.title) || 'New Notification';
+        showToast(`🔔 ${title}`, 'success', 6000);
+    });
+}
+
+// প্রথমবার অ্যাপ খোলার কয়েক সেকেন্ড পর একবার পারমিশন চাইবে
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof Notification === 'undefined') return;
+        if (Notification.permission === 'default' && !localStorage.getItem('fcm_asked')) {
+            localStorage.setItem('fcm_asked', 'true');
+            enablePushNotifications();
+        } else if (Notification.permission === 'granted' && localStorage.getItem('fcm_enabled') !== 'true') {
+            enablePushNotifications();
+        }
+    }, 4000);
+});
+
+const btnLoaderHTML = `<div class="btn-loader"><div class="loader-bars-sm"><div></div><div></div><div></div></div><span>Processing...</span></div>`;
+
+/* DEFAULT LOGO (shown when a channel/category has no logo set) */
+const DEFAULT_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#161616"/><rect x="14" y="20" width="36" height="24" rx="4" fill="none" stroke="#00ffff" stroke-width="3"/><path d="M24 14l8 8 8-8" fill="none" stroke="#00ffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="5" fill="#00ffff"/></svg>`;
+const DEFAULT_LOGO = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(DEFAULT_LOGO_SVG);
+// Names longer than 10 characters slide left-to-right instead of getting cut off
+function marqueeName(name) {
+    name = name || '';
+    return name.length > 10 ? `<span class="marquee-wrap"><span class="marquee-inner">${name}</span></span>` : name;
+}
+
+/* TOAST NOTIFICATIONS */
+function showToast(msg, type, duration) {
+    const c = document.getElementById('toast-container');
+    if(!c) return;
+    const t = document.createElement('div');
+    t.className = 'toast' + (type === 'warning' ? ' warning' : '');
+    t.innerText = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, duration || 3000);
+}
+
+/* NETWORK CHECK (only at app open) */
+let clearSlowNetTimer = null;
+function checkNetworkOnStart() {
+    if(!navigator.onLine) {
+        showToast("⚠️ No internet connection. Please turn on the network and try again.", "warning", 6000);
+        return;
+    }
+    const slowTimer = setTimeout(() => {
+        showToast("⚠️ Internet seems slow, it may take a moment to load.", "warning", 6000);
+    }, 4000);
+    clearSlowNetTimer = () => clearTimeout(slowTimer);
+}
+checkNetworkOnStart();
+
+/* FAVORITE CHANNEL HELPERS (long-press a channel card to toggle) */
+function encodeChan(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+function decodeChan(str) { try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch(e) { return null; } }
+function isFav(name, u1) { return favorites.some(f => f.name === name && f.u1 === u1); }
+function toggleFavoriteFromCard(card) {
+    const data = decodeChan(card.getAttribute('data-channel'));
+    if(!data) return;
+    const idx = favorites.findIndex(f => f.name === data.name && f.u1 === data.u1);
+    if(idx > -1) { favorites.splice(idx, 1); card.classList.remove('is-fav'); showToast(`${data.name} removed from favorites`); }
+    else { favorites.push(data); card.classList.add('is-fav'); showToast(`⭐ ${data.name} added to favorites`); }
+    localStorage.setItem('neon_favs', JSON.stringify(favorites));
+    renderFavs();
+}
+let pressTimer = null;
+let longPressFired = false;
+document.addEventListener('pointerdown', (e) => {
+    const card = e.target.closest('.card[data-channel]');
+    if(!card) return;
+    longPressFired = false;
+    pressTimer = setTimeout(() => { longPressFired = true; toggleFavoriteFromCard(card); if(navigator.vibrate) navigator.vibrate(40); }, 550);
+});
+['pointerup','pointerleave','pointercancel'].forEach(evt => {
+    document.addEventListener(evt, () => { if(pressTimer) { clearTimeout(pressTimer); pressTimer = null; } });
+});
+document.addEventListener('click', (e) => {
+    if(longPressFired) { longPressFired = false; e.stopPropagation(); e.preventDefault(); }
+}, true);
+
+/* AUTH MONITOR */
+auth.onAuthStateChanged(user => {
+    if(clearSlowNetTimer) clearSlowNetTimer();
+    if(user){
+        db.collection("users").doc(user.uid).onSnapshot(doc => {
+            if(!doc.exists || (doc.data() && doc.data().status === "blocked")) {
+                if(doc.exists) alert("Account Blocked!"); auth.signOut(); return;
+            }
+            db.collection("users").doc(user.uid).update({ isOnline: true });
+            document.getElementById("user-email-display").innerText = user.email;
+            document.getElementById("user-name-display").innerText = (doc.data() && doc.data().name) ? doc.data().name : "User";
+            loadProfilePhoto(user.uid);
+            loadData(); listenForAutoUpdate(); applyQualityToggleUI();
+            splashTimerDone = false;
+            setTimeout(() => { splashTimerDone = true; revealApp(); }, 2500);
+        });
+    } else {
+        document.getElementById("splash-screen").style.display="none"; document.getElementById("app").style.display="none"; document.getElementById("auth-screen").style.display="flex";
+    }
+});
+
+/* Remote Support */
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const f = document.activeElement; if (f && f.onclick) f.click(); } });
+window.addEventListener('beforeunload', () => { if(auth.currentUser) db.collection("users").doc(auth.currentUser.uid).update({ isOnline: false }); });
+
+/* ================= EVENTS: CATEGORY + STATUS FILTER & AUTO TIMING LOGIC ================= */
+let eventsCache = [];
+let selectedEventCategory = 'All';
+let selectedEventStatus = 'All';
+
+// Determines the actual match status (Live/Upcoming/Finished) based on time
+function computeEventTiming(ev) {
+    let start = null;
+    if (ev.startAt) {
+        start = (ev.startAt && typeof ev.startAt.toDate === 'function') ? ev.startAt.toDate() : new Date(ev.startAt);
+    }
+    if (!start || isNaN(start.getTime())) {
+        // If startAt is missing, fall back to the admin's manual status
+        return { status: ev.status === 'Live' ? 'Live' : (ev.status === 'Finished' ? 'Finished' : 'Upcoming'), start: null, end: null };
+    }
+    const durHrs = ev.durationHours || (ev.category === 'Cricket' ? 8 : (['Boxing', 'MMA', 'UFC'].includes(ev.category) ? 4 : 3));
+    const end = new Date(start.getTime() + durHrs * 3600000);
+    const now = new Date();
+    let status;
+    if (ev.forceStatus) status = ev.forceStatus; // Admin can manually override this if needed
+    else if (now < start) status = 'Upcoming';
+    else if (now <= end) status = 'Live';
+    else status = 'Finished';
+    return { status, start, end };
+}
+
+function formatDMY(d) { const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`; }
+function formatTime12(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; }
+function formatCountdown(start) {
+    const diffMs = start - new Date();
+    if (diffMs <= 0) return 'Starting soon';
+    const mins = Math.floor(diffMs / 60000), hrs = Math.floor(mins / 60), days = Math.floor(hrs / 24);
+    if (days > 0) return `${days}d ${hrs % 24}h`;
+    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
+    return `${mins}m`;
+}
+function formatElapsed(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+/* Icon (emoji) based on the sport category */
+const CATEGORY_ICONS = { Football: '⚽', Soccer: '⚽', Cricket: '🏏', Boxing: '🥊', Basketball: '🏀', Baseball: '⚾', Rugby: '🏉', Tennis: '🎾', Hockey: '🏒', MMA: '🥋', UFC: '🥋', Volleyball: '🏐', Golf: '⛳', Racing: '🏎️', WWE: '🤼' };
+function categoryIcon(cat) { return CATEGORY_ICONS[cat] || '🏆'; }
+
+function renderMatchCard(ev, timing) {
+    const status = timing.status;
+    const dateStr = timing.start ? formatDMY(timing.start) : (ev.date || '');
+    const timeStr = timing.start ? formatTime12(timing.start) : (ev.time || '');
+    let statusLine;
+    const countdownAttr = (status === 'Upcoming' && timing.start) ? ` data-countdown-timer="${timing.start.toISOString()}"` : '';
+    if (status === 'Live') statusLine = `<span class="live-dot"></span>Live Now`;
+    else if (status === 'Finished') statusLine = `Match Finished`;
+    else statusLine = timing.start ? `Starts in ${formatCountdown(timing.start)}` : (ev.time ? `Match Starts at ${ev.time}` : 'Upcoming');
+
+    if (ev.layoutType === 'single') {
+        return `<div class="match-card2 ${status.toLowerCase()}" tabindex="0" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')" style="margin-top:12px;">
+            ${status === 'Live' ? '<div class="live-badge-corner"><span class="live-dot"></span>LIVE</div>' : (ev.hot ? '<div class="hot-ribbon">Hot</div>' : '')}
+            <img src="${ev.poster || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'" style="width:100%; height:78px; object-fit:cover; border-radius:14px 14px 0 0; display:block;">
+            <div style="padding:7px 10px 2px; text-align:center; font-family:'Orbitron'; font-size:10px; color:var(--cyan);">${ev.headline || ''}</div>
+            <div class="mc2-status ${status.toLowerCase()}" style="padding:5px;"${countdownAttr}>${statusLine}</div>
+        </div>`;
+    }
+
+    const centerHTML = (status === 'Live' && timing.start)
+        ? `<div class="mc2-live-timer" data-live-timer="${timing.start.toISOString()}"><div class="live-label"><span class="live-dot"></span>Live</div><div class="live-clock">${formatElapsed(new Date() - timing.start)}</div></div>`
+        : `<div class="mc2-center"><div class="mc2-time">${timeStr}</div><div class="mc2-date">${dateStr}</div></div>`;
+
+    return `<div class="match-card2 ${status.toLowerCase()}" tabindex="0" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')">
+        ${ev.hot ? '<div class="hot-ribbon">Hot</div>' : ''}
+        <div class="league-pill">${ev.leagueIcon ? `<img src="${ev.leagueIcon}" class="league-icon">` : categoryIcon(ev.category)} ${ev.category ? ev.category + ' || ' : ''}${ev.league || ev.headline || ''}</div>
+        <div class="mc2-body">
+            <div class="mc2-team"><img src="${ev.logoA || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ev.teamA || '')}</p></div>
+            ${centerHTML}
+            <div class="mc2-team"><img src="${ev.logoB || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ev.teamB || '')}</p></div>
+        </div>
+        <div class="mc2-status ${status.toLowerCase()}"${countdownAttr}>${statusLine}</div>
+    </div>`;
+}
+
+function renderEvents() {
+    const withTiming = eventsCache.map(ev => ({ ev, timing: computeEventTiming(ev) }));
+
+    // Fixed base categories (always shown, count 0 if no events) + any extra category found in the data
+    const BASE_CATEGORIES = ['Football', 'Boxing', 'Basketball', 'Baseball', 'Rugby', 'MMA', 'Tennis'];
+    const catNames = [...BASE_CATEGORIES];
+    withTiming.forEach(x => { if (x.ev.category && !catNames.includes(x.ev.category)) catNames.push(x.ev.category); });
+    const catCounts = { All: withTiming.length };
+    catNames.forEach(c => { catCounts[c] = 0; });
+    withTiming.forEach(x => { if (x.ev.category && catCounts.hasOwnProperty(x.ev.category)) catCounts[x.ev.category]++; });
+
+    const catFiltered = withTiming.filter(x => selectedEventCategory === 'All' || x.ev.category === selectedEventCategory);
+
+    const statusCounts = { All: catFiltered.length, Live: 0, Upcoming: 0, Finished: 0 };
+    catFiltered.forEach(x => { statusCounts[x.timing.status] = (statusCounts[x.timing.status] || 0) + 1; });
+
+    const finalList = catFiltered.filter(x => selectedEventStatus === 'All' || x.timing.status === selectedEventStatus);
+    const order = { Live: 0, Upcoming: 1, Finished: 2 };
+    finalList.sort((a, b) => {
+        if (order[a.timing.status] !== order[b.timing.status]) return order[a.timing.status] - order[b.timing.status];
+        if (a.timing.start && b.timing.start) return a.timing.start - b.timing.start;
+        return 0;
+    });
+
+    const catRow = document.getElementById("event-cat-filter");
+    if (catRow) {
+        const cats = [{ key: 'All', label: 'All', icon: 'refresh-cw' }, ...catNames.map(c => ({ key: c, label: c, icon: categoryIcon(c) }))];
+        catRow.innerHTML = cats.map(c => `
+            <div class="cat-filter-item ${selectedEventCategory === c.key ? 'active' : ''}" tabindex="0" onclick="setEventCategory('${c.key}')">
+                <div class="cat-filter-circle">
+                    ${c.icon.length > 2 ? `<i data-lucide="${c.icon}"></i>` : `<span class="emoji">${c.icon}</span>`}
+                    <span class="cat-filter-count">${catCounts[c.key] || 0}</span>
+                </div>
+                <div class="cat-filter-label">${c.label}</div>
+            </div>`).join('');
+    }
+
+    const statusRow = document.getElementById("event-status-filter");
+    if (statusRow) {
+        const statuses = ['All', 'Live', 'Upcoming', 'Finished'];
+        statusRow.innerHTML = statuses.map(s => `
+            <div class="status-chip ${selectedEventStatus === s ? 'active' : ''}" tabindex="0" onclick="setEventStatus('${s}')">
+                ${selectedEventStatus === s ? '<i data-lucide="check"></i>' : ''}${s} (${statusCounts[s] || 0})
+            </div>`).join('');
+    }
+
+    const list = document.getElementById("event-list");
+    if (list) {
+        list.innerHTML = finalList.length ? finalList.map(x => renderMatchCard(x.ev, x.timing)).join('') : "<p style='color:#555; text-align:center; padding:30px 0;'>No matches available.</p>";
+    }
+    lucide.createIcons();
+}
+function setEventCategory(cat) { selectedEventCategory = cat; selectedEventStatus = 'All'; renderEvents(); }
+function setEventStatus(st) { selectedEventStatus = st; renderEvents(); }
+// Every second, only update the running timer of Live matches (without re-rendering the whole list)
+setInterval(() => {
+    document.querySelectorAll('[data-live-timer]').forEach(el => {
+        const start = new Date(el.getAttribute('data-live-timer'));
+        const clock = el.querySelector('.live-clock');
+        if (clock && !isNaN(start.getTime())) clock.innerText = formatElapsed(new Date() - start);
+    });
+    // Update the countdown for upcoming matches every second
+    document.querySelectorAll('[data-countdown-timer]').forEach(el => {
+        const start = new Date(el.getAttribute('data-countdown-timer'));
+        if (!isNaN(start.getTime())) el.innerHTML = `Starts in ${formatCountdown(start)}`;
+    });
+}, 1000);
+// Re-check every minute so a match auto-moves to Finished once its time is up
+setInterval(() => { if (eventsCache.length) renderEvents(); }, 60000);
+
+function loadData() {
+    db.collection("settings").doc("ticker").onSnapshot(doc => { if(doc.exists) document.getElementById("ticker-content").innerText = doc.data().text; });
+    
+    // Notification listener fixed (using 'time' instead of 'timestamp' to match admin panel)
+    db.collection("notifications").orderBy('time', 'desc').onSnapshot(snap => {
+        totalNotifs = snap.size;
+        const lastSeen = parseInt(localStorage.getItem('notif_last') || 0);
+        const badge = document.getElementById("notif-count");
+        if(totalNotifs > lastSeen) { badge.innerText = totalNotifs - lastSeen; badge.style.display="flex"; } else { badge.style.display="none"; }
+        const l = document.getElementById("notif-list-page"); l.innerHTML = "";
+        snap.forEach(doc => { const n = doc.data(); l.innerHTML += `<div style="background:var(--card-bg); padding:15px; border-radius:15px; border-left:4px solid var(--cyan); margin-bottom:10px;"><h4>${n.title}</h4><p style="font-size:12px; color:#aaa;">${n.message}</p></div>`; });
+    });
+
+    db.collection("events").onSnapshot(snap => {
+        eventsCache = [];
+        snap.forEach(doc => eventsCache.push({ id: doc.id, ...doc.data() }));
+        renderEvents();
+    });
+
+    db.collection("categories").onSnapshot(snap => {
+        const list = document.getElementById("category-list"); list.innerHTML = "";
+        snap.forEach(doc => { const cat = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="openCategory('${cat.name}')"><img src="${cat.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${cat.name}</p></div>`; });
+    });
+
+    db.collection("settings").doc("adult_config").onSnapshot(doc => { if (doc.exists) { adultConfig = doc.data(); document.getElementById("adult-folder-menu").style.display = adultConfig.isVisible ? "flex" : "none"; } });
+    renderFavs();
+}
+
+/* PROFILE PHOTO (saved on-device per account) */
+function loadProfilePhoto(uid) {
+    const saved = localStorage.getItem('neon_photo_' + uid);
+    const box = document.getElementById("profile-photo");
+    if(saved) { box.style.backgroundImage = `url(${saved})`; box.innerHTML = ""; }
+    else { box.style.backgroundImage = "none"; box.innerHTML = '<i data-lucide="user"></i>'; lucide.createIcons(); }
+}
+function setProfilePhoto(e) {
+    const file = e.target.files[0];
+    if(!file || !auth.currentUser) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+            const size = 200;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const minDim = Math.min(img.width, img.height);
+            const sx = (img.width - minDim) / 2, sy = (img.height - minDim) / 2;
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            try {
+                localStorage.setItem('neon_photo_' + auth.currentUser.uid, dataUrl);
+                loadProfilePhoto(auth.currentUser.uid);
+            } catch(err) { alert("Could not save the image, please try another one."); }
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* LOW QUALITY TOGGLE (ON = better quality, OFF = data saver) */
+function applyQualityToggleUI() {
+    const isHighQuality = localStorage.getItem('neon_low_quality_off') !== 'false'; // default true (ON = good quality)
+    document.getElementById("quality-toggle").classList.toggle("on", isHighQuality);
+}
+function toggleLowQuality() {
+    const el = document.getElementById("quality-toggle");
+    const nowOn = !el.classList.contains("on");
+    el.classList.toggle("on", nowOn);
+    localStorage.setItem('neon_low_quality_off', nowOn ? 'true' : 'false');
+    applyStreamQuality();
+}
+function applyStreamQuality() {
+    if(!art || !art.hls) return;
+    const highQuality = localStorage.getItem('neon_low_quality_off') !== 'false';
+    if(highQuality) { art.hls.currentLevel = -1; /* auto / best quality */ }
+    else if(art.hls.levels && art.hls.levels.length) { art.hls.currentLevel = 0; /* lowest level = data saver */ }
+}
+
+/* EXIT APP */
+function exitApp() {
+    if(confirm('Do you want to exit the app?')) {
+        window.close();
+        setTimeout(() => { if(!window.closed) alert("This app can't be closed automatically on this device. Please close it manually."); }, 300);
+    }
+}
+
+/* UPDATE LOGIC (mandatory — the app won't open if the version doesn't match) */
+let splashTimerDone = false;
+let versionOK = true;
+function revealApp() {
+    if(splashTimerDone && versionOK) {
+        document.getElementById("splash-screen").style.display = "none";
+        document.getElementById("auth-screen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+        document.getElementById("update-popup").style.display = "none";
+        lucide.createIcons();
+    }
+}
+function listenForAutoUpdate() {
+    db.collection("settings").doc("app_config").onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.version !== CURRENT_VERSION) {
+                versionOK = false;
+                document.getElementById("splash-screen").style.display = "none";
+                document.getElementById("auth-screen").style.display = "none";
+                document.getElementById("app").style.display = "none";
+                document.getElementById("update-popup").style.display = "flex";
+                document.getElementById("new-ver-label").innerText = "VERSION: " + data.version;
+                document.getElementById("update-confirm-btn").onclick = function() { window.open(data.link, '_blank'); };
+                lucide.createIcons();
+            } else {
+                versionOK = true;
+                revealApp();
+            }
+        } else {
+            versionOK = true;
+            revealApp();
+        }
+    });
+}
+function checkUpdate() {
+    db.collection("settings").doc("app_config").get().then(doc => {
+        if (doc.exists && doc.data().version !== CURRENT_VERSION) { if (confirm(`Version ${doc.data().version} Available!`)) window.open(doc.data().link, '_blank'); }
+        else alert("App is up to date! v" + CURRENT_VERSION);
+    });
+}
+
+/* ADULT LOGIN FLOW */
+function handleAdultLoginFlow() {
+    switchPage('adult-content');
+    const user = auth.currentUser;
+    db.collection("users").doc(user.uid).get().then(doc => {
+        const userData = doc.data();
+        const authArea = document.getElementById("adult-auth-section");
+        const listArea = document.getElementById("adult-channel-list");
+        if(!userData.adultPin) {
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">Set a 4 digit PIN for the 18+ folder.</p><input type="number" id="new-adult-pin" class="auth-input" placeholder="Set 4 Digit PIN"><button class="auth-btn" onclick="registerAdultPin()">Set PIN</button></div>`;
+            authArea.style.display = "block"; listArea.style.display = "none";
+        } else {
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">Enter your PIN number to continue.</p><input type="number" id="login-adult-pin" class="auth-input" placeholder="Enter PIN"><button class="auth-btn" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
+            authArea.style.display = "block"; listArea.style.display = "none";
+        }
+    });
+}
+function registerAdultPin() {
+    const pin = document.getElementById("new-adult-pin").value;
+    if(pin.length < 4) return alert("PIN must be 4 digits!");
+    db.collection("users").doc(auth.currentUser.uid).update({ adultPin: pin }).then(() => { alert("PIN registered!"); handleAdultLoginFlow(); });
+}
+function verifyAdultPin(correctPin) {
+    if(document.getElementById("login-adult-pin").value === correctPin) {
+        document.getElementById("adult-auth-section").style.display = "none";
+        document.getElementById("adult-channel-list").style.display = "grid";
+        loadAdultChannels();
+    } else alert("Incorrect PIN!");
+}
+function loadAdultChannels() {
+    db.collection("adult_channels").onSnapshot(snap => {
+        const list = document.getElementById("adult-channel-list"); list.innerHTML = "";
+        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`; });
+    });
+}
+
+function openCategory(name) {
+    document.getElementById("cat-main").style.display = "none"; document.getElementById("cat-details").style.display = "block";
+    document.getElementById("selected-cat-title").innerText = name;
+    db.collection("channels").where("category", "==", name).onSnapshot(snap => {
+        const list = document.getElementById("filtered-channel-list"); list.innerHTML = "";
+        snap.forEach(doc => {
+            const ch = doc.data();
+            const chanData = { name: ch.name, logo: ch.logo || DEFAULT_LOGO, u1: ch.url1 || '', u2: ch.url2 || '', u3: ch.url3 || '' };
+            const favClass = isFav(chanData.name, chanData.u1) ? ' is-fav' : '';
+            list.innerHTML += `<div class="card${favClass}" tabindex="0" data-channel="${encodeChan(chanData)}" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`;
+        });
+    });
+}
+
+let art = null;
+let currentBrightness = 1;
+// Some mobile browsers silently block unmuted autoplay; try normal play first, then muted, then unmute shortly after
+function attemptAutoplay() {
+    if (!art) return;
+    const p = art.play();
+    if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+            art.muted = true;
+            art.play().then(() => {
+                setTimeout(() => { if (art) art.muted = false; }, 400);
+            }).catch(() => {});
+        });
+    }
+}
+function prepareStream(u1, u2, u3) {
+    const sBox = document.getElementById("server-box"); sBox.innerHTML = "";
+    if (u1 || u2 || u3) {
+        sBox.style.display = "flex";
+        if(u1) sBox.innerHTML += `<button class="server-btn active" tabindex="0" onclick="play('${u1}', this)">Server 1</button>`;
+        if(u2) sBox.innerHTML += `<button class="server-btn" tabindex="0" onclick="play('${u2}', this)">Server 2</button>`;
+        if(u3) sBox.innerHTML += `<button class="server-btn" tabindex="0" onclick="play('${u3}', this)">Server 3</button>`;
+    } else sBox.style.display = "none";
+    play(u1 || u2 || u3);
+}
+
+function play(url, btn) {
+    if(!url) return;
+    if(btn) { document.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
+    const vCont = document.querySelector(".video-container");
+    vCont.style.display = "block";
+    toggleMatchFilters(true);
+
+    if(art) { art.destroy(false); art = null; }
+    currentBrightness = 1;
+
+    art = new Artplayer({
+        container: '#artplayer-app',
+        url: url,
+        autoplay: true,
+        playsInline: true,
+        autoSize: false,
+        autoOrientation: true,
+        fullscreen: true,
+        fullscreenWeb: true,
+        pip: true,
+        setting: true,
+        aspectRatio: true,
+        flip: true,
+        playbackRate: true,
+        screenshot: true,
+        hotkey: true,
+        gesture: false, // handled manually below (volume + brightness + seek swipe)
+        fastForward: true,
+        lock: true,
+        theme: '#00ffff',
+        volume: 1,
+        moreVideoAttr: { playsInline: true },
+        controls: [
+            {
+                name: 'cast',
+                position: 'right',
+                index: 10,
+                html: '<i data-lucide="cast" style="width:20px;height:20px;"></i>',
+                tooltip: 'Cast to TV',
+                click: function () { castToDevice(); },
+            },
+        ],
+        // --- Auto format detection: HLS(.m3u8) uses hls.js, others play natively (MP4/TS/MKV) ---
+        type: url.includes('.m3u8') ? 'm3u8' : '',
+        customType: {
+            m3u8: function (video, url) {
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    art.hls = hls;
+                    art.on('destroy', () => hls.destroy());
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        applyStreamQuality();
+                        attemptAutoplay();
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = url;
+                }
+            },
+        },
+    });
+
+    art.on('ready', () => { lucide.createIcons(); attemptAutoplay(); });
+    initGestureControls();
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function stopStream() {
+    const c = document.querySelector(".video-container");
+    if(c && c.style.display === "block") {
+        if(art) { art.destroy(false); art = null; }
+        c.style.display = "none";
+        document.getElementById("server-box").style.display = "none";
+        toggleMatchFilters(false);
+    }
+}
+
+/* --- CHROMECAST / AIRPLAY --- */
+function castToDevice() {
+    if(!art) return;
+    const videoEl = art.template.$video;
+    if (videoEl.webkitShowPlaybackTargetPicker) {
+        // AirPlay (Safari / iOS / macOS)
+        videoEl.webkitShowPlaybackTargetPicker();
+    } else if (videoEl.remote && typeof videoEl.remote.prompt === 'function') {
+        // Remote Playback API (Chromecast on Chrome/Edge/Android)
+        videoEl.remote.prompt().catch(() => showToast('No cast device found nearby', 'warning'));
+    } else {
+        showToast('Casting is not supported on this browser', 'warning');
+    }
+}
+
+/* --- CUSTOM SWIPE GESTURES: right side = volume, left side = brightness, horizontal = seek --- */
+let gestureState = null;
+function initGestureControls() {
+    const zone = document.querySelector('.video-container');
+    if (!zone || zone._gestureBound) return;
+    zone._gestureBound = true;
+
+    zone.addEventListener('touchstart', (e) => {
+        if (!art || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const rect = zone.getBoundingClientRect();
+        gestureState = {
+            startX: t.clientX, startY: t.clientY,
+            side: (t.clientX - rect.left) < rect.width / 2 ? 'left' : 'right',
+            mode: null,
+            startVolume: art.volume,
+            startBrightness: currentBrightness,
+            lastDX: 0,
+        };
+    }, { passive: true });
+
+    zone.addEventListener('touchmove', (e) => {
+        if (!gestureState || !art) return;
+        const t = e.touches[0];
+        const dx = t.clientX - gestureState.startX;
+        const dy = t.clientY - gestureState.startY;
+        const rect = zone.getBoundingClientRect();
+
+        if (gestureState.mode === null) {
+            if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) gestureState.mode = 'seek';
+            else if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) gestureState.mode = 'vertical';
+            else return;
+        }
+
+        if (gestureState.mode === 'seek') {
+            e.preventDefault();
+            gestureState.lastDX = dx;
+            const deltaSec = Math.round((dx / rect.width) * 90);
+            showGestureHint('seek', (deltaSec >= 0 ? '+' : '') + deltaSec + 's');
+        } else {
+            e.preventDefault();
+            const change = (-dy / rect.height) * 1.3;
+            if (gestureState.side === 'right') {
+                const vol = Math.min(1, Math.max(0, gestureState.startVolume + change));
+                art.volume = vol;
+                art.muted = false;
+                const videoEl = art.template && art.template.$video;
+                if (videoEl) { videoEl.volume = vol; videoEl.muted = false; }
+                showGestureHint('volume', Math.round(vol * 100) + '%');
+            } else {
+                currentBrightness = Math.min(1.8, Math.max(0.3, gestureState.startBrightness + change));
+                const videoEl = art.template && art.template.$video;
+                if (videoEl) videoEl.style.filter = 'brightness(' + currentBrightness + ')';
+                showGestureHint('brightness', Math.round(currentBrightness * 100) + '%');
+            }
+        }
+    }, { passive: false });
+
+    zone.addEventListener('touchend', () => {
+        if (gestureState && gestureState.mode === 'seek' && art) {
+            const deltaSec = Math.round((gestureState.lastDX / zone.clientWidth) * 90);
+            art.seek = Math.max(0, art.currentTime + deltaSec);
+        }
+        hideGestureHint();
+        gestureState = null;
+    });
+}
+
+function showGestureHint(type, text) {
+    let hint = document.getElementById('gesture-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'gesture-hint';
+        document.querySelector('.video-container').appendChild(hint);
+    }
+    const icons = { seek: '⏩', volume: '🔊', brightness: '☀️' };
+    hint.innerHTML = `<span>${icons[type] || ''}</span> ${text}`;
+    hint.style.display = 'flex';
+}
+function hideGestureHint() {
+    const hint = document.getElementById('gesture-hint');
+    if (hint) hint.style.display = 'none';
+}
+
+// Hides the category and status filters (All/Football/Cricket/Live/Upcoming) while a match is playing
+function toggleMatchFilters(hide) {
+    const catRow = document.getElementById("event-cat-filter");
+    const statusRow = document.getElementById("event-status-filter");
+    if(catRow) catRow.style.display = hide ? "none" : "flex";
+    if(statusRow) statusRow.style.display = hide ? "none" : "flex";
+}
+
+function switchPage(id, el){
+    if(id === 'settings' || id === 'adult-content' || id === 'favorites' || id === 'notifications') stopStream(); 
+    if(id === 'notifications') { localStorage.setItem('notif_last', totalNotifs); document.getElementById("notif-count").style.display="none"; }
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".nav").forEach(n => n.classList.remove("active"));
+    if(el) el.classList.add("active");
+    document.getElementById("search-container").style.display = "none";
+    if(id !== 'categories') closeCategory();
+    lucide.createIcons();
+}
+
+function toggleSearch() { const c = document.getElementById("search-container"); c.style.display = c.style.display === "block" ? "none" : "block"; }
+function filterItems() { const q = document.getElementById("search-input").value.toLowerCase(); document.querySelectorAll(".match-card2, .card").forEach(item => { item.style.display = item.innerText.toLowerCase().includes(q) ? "" : "none"; }); }
+function logout(){ if(confirm('Logout?')) { db.collection("users").doc(auth.currentUser.uid).update({ isOnline: false }).then(() => auth.signOut()); } }
+function closeCategory() { document.getElementById("cat-main").style.display = "block"; document.getElementById("cat-details").style.display = "none"; }
+function toggleAuth(){ document.getElementById("login-box").style.display = document.getElementById("login-box").style.display === "none" ? "block" : "none"; document.getElementById("register-box").style.display = document.getElementById("register-box").style.display === "none" ? "block" : "none"; }
+
+function showCopyright() { alert("Copyright Disclaimer:\n\Neon Live TV does not host or own any video content. All live streams, logos, trademarks, and media belong to their respective owners. We only provide access to publicly available content from third-party sources. If you are the copyright owner and believe any content infringes your rights, please contact us. We will review and remove the reported content promptly if necessary."); }
+function showPrivacy() { alert("Privacy Policy:\n\ Neon Live TV respects your privacy. We do not collect or store personal information unless required to provide app functionality. The app may use third-party services such as Firebase for analytics, authentication, or notifications. These services may collect limited technical information according to their own privacy policies. By using this app, you agree to this Privacy Policy."); }
+
+function renderFavs() {
+    const list = document.getElementById("favorites-list"); list.innerHTML = "";
+    if(favorites.length === 0) list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center;'>Empty. Press and hold a channel to add it here.</p>";
+    favorites.forEach(f => { list.innerHTML += `<div class="card is-fav" tabindex="0" data-channel="${encodeChan(f)}" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(f.name)}</p></div>`; });
+}
+
+async function login(){ const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value; if(!e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; }); }
+async function register(){ const btn = document.getElementById("reg-btn"), e = document.getElementById("r-email").value, n = document.getElementById("r-name").value, p = document.getElementById("r-pass").value; if(!n || !e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.createUserWithEmailAndPassword(e, p).then(res => { db.collection("users").doc(res.user.uid).set({name:n, email:e, status:"active", isOnline: true}); }).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Create Account"; }); }
+function forgotPassword() { const e = document.getElementById("l-email").value; if(!e) return alert("Enter email first."); auth.sendPasswordResetEmail(e).then(() => alert("Reset link sent!")).catch(e => alert(e.message)); }
+
+window.onload = () => lucide.createIcons();
+</script>
+</body>
+</html>
