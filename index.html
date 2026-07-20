@@ -12,6 +12,9 @@
 <!-- HLS.js -->
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
+<!-- mpegts.js (for .ts / raw MPEG-TS and .flv streams, which browsers can't play natively) -->
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.js"></script>
+
 <!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -859,6 +862,15 @@ function attemptAutoplay() {
         });
     }
 }
+
+// URL এর এক্সটেনশন দেখে কোন প্লেব্যাক পদ্ধতি ব্যবহার হবে ঠিক করে
+function detectPlayType(url) {
+    const clean = url.split('?')[0].toLowerCase();
+    if (clean.includes('.m3u8')) return 'm3u8';
+    if (clean.endsWith('.ts') || clean.includes('.ts?') || clean.endsWith('.flv')) return 'customTs';
+    return 'auto'; // mp4, webm ইত্যাদি — ব্রাউজারের নিজস্ব নেটিভ প্লেব্যাক ব্যবহার হবে
+}
+
 function prepareStream(u1, u2, u3) {
     const sBox = document.getElementById("server-box"); sBox.innerHTML = "";
     if (u1 || u2 || u3) {
@@ -912,8 +924,8 @@ function play(url, btn) {
                 click: function () { castToDevice(); },
             },
         ],
-        // --- Auto format detection: HLS(.m3u8) uses hls.js, others play natively (MP4/TS/MKV) ---
-        type: url.includes('.m3u8') ? 'm3u8' : '',
+        // --- Auto format detection: HLS(.m3u8) uses hls.js, .ts/.flv uses mpegts.js, others (MP4 etc) use native browser playback ---
+        type: detectPlayType(url),
         customType: {
             m3u8: function (video, url) {
                 if (Hls.isSupported()) {
@@ -928,6 +940,20 @@ function play(url, btn) {
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
+                }
+            },
+            customTs: function (video, url) {
+                if (typeof mpegts !== 'undefined' && mpegts.isSupported()) {
+                    const isFlv = url.split('?')[0].toLowerCase().endsWith('.flv');
+                    const player = mpegts.createPlayer({ type: isFlv ? 'flv' : 'mpegts', url: url, isLive: true });
+                    player.attachMediaElement(video);
+                    player.load();
+                    art.mpegts = player;
+                    art.on('destroy', () => player.destroy());
+                    player.on(mpegts.Events.ERROR, () => showToast('⚠️ এই স্ট্রিমটি লোড করা যাচ্ছে না', 'warning'));
+                    attemptAutoplay();
+                } else {
+                    showToast('⚠️ এই ফরম্যাটটি এই ব্রাউজারে সাপোর্টেড না', 'warning');
                 }
             },
         },
