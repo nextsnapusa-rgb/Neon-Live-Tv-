@@ -2,15 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- জুম বন্ধ করার জন্য ভিউপোর্ট -->
+<!-- Viewport to disable zoom -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Neon Live Tv</title>
-
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#030303">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
 
 <!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -21,10 +15,14 @@
 <!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
 
+<!-- ArtPlayer -->
+<script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
 <style>
 :root{
@@ -81,8 +79,12 @@ body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-seri
 .toast { background: rgba(15,15,15,0.95); border: 1px solid var(--cyan); color: #fff; font-size: 12px; padding: 10px 18px; border-radius: 30px; box-shadow: 0 0 15px rgba(0,255,255,0.2); animation: toast-in 0.25s ease; max-width: 320px; text-align: center; }
 .toast.warning { border-color: var(--red); box-shadow: 0 0 15px rgba(255,71,87,0.35); }
 @keyframes toast-in { from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
-.card img { width: 40px; height: 40px; border-radius: 8px; background: #fff; margin-bottom: 8px; object-fit: contain; }
+.card img { width: 40px; height: 40px; border-radius: 50%; background: #fff; margin-bottom: 8px; object-fit: cover; }
 .card p { font-size: 9px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; padding: 0 2px; }
+/* --- SLIDING TEXT for names longer than 10 characters --- */
+.marquee-wrap { display:block; width:100%; overflow:hidden; }
+.marquee-inner { display:inline-block; white-space:nowrap; animation: marquee-slide 5s linear infinite; }
+@keyframes marquee-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
 /* --- AUTH UI & PROCESSING BARS --- */
 #auth-screen{ position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; padding:25px; z-index:9999; }
@@ -106,11 +108,10 @@ body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-seri
 
 /* --- EVENT CATEGORY & STATUS FILTERS --- */
 .live-fixed-top { position: sticky; top: 0; z-index: 50; background: var(--bg); padding-bottom: 4px; }
-body.video-playing .live-fixed-top { display: none; }
 .cat-filter-row { display:flex; gap:20px; overflow-x:auto; padding: 4px 2px 10px; margin-bottom: 4px; scrollbar-width: none; }
 .cat-filter-row::-webkit-scrollbar { display:none; }
 .cat-filter-item { display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; cursor:pointer; }
-.cat-filter-circle { width:54px; height:54px; border-radius:50%; border:2px solid #333; display:flex; align-items:center; justify-content:center; position:relative; background:#111; transition:0.2s; }
+.cat-filter-circle { width:44px; height:44px; border-radius:50%; border:2px solid #333; display:flex; align-items:center; justify-content:center; position:relative; background:#111; transition:0.2s; }
 .cat-filter-item.active .cat-filter-circle { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,255,255,0.45); }
 .cat-filter-circle i { width:22px; height:22px; color:#fff; }
 .cat-filter-circle span.emoji { font-size:21px; line-height:1; }
@@ -118,14 +119,14 @@ body.video-playing .live-fixed-top { display: none; }
 .cat-filter-label { font-size:12px; color:#ccc; }
 .cat-filter-item.active .cat-filter-label { color: var(--cyan); font-weight:700; }
 
-.status-filter-row { display:flex; gap:10px; overflow-x:auto; padding: 2px 2px 12px; margin-bottom: 18px; scrollbar-width: none; }
+.status-filter-row { display:flex; gap:8px; overflow-x:auto; padding: 2px 2px 8px; margin-bottom: 8px; scrollbar-width: none; }
 .status-filter-row::-webkit-scrollbar { display:none; }
 .status-chip { flex-shrink:0; padding:9px 16px; border-radius:30px; border:1.5px solid #333; font-size:12px; color:#ccc; display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; background:#0c0c0c; }
 .status-chip.active { border-color: var(--cyan); color:#fff; background: rgba(0,255,255,0.08); }
 .status-chip i { width:13px; height:13px; color: var(--cyan); }
 
 /* --- EVENT / MATCH CARD (redesigned, compact) --- */
-.match-card2 { position:relative; background: var(--match-bg); border: 1.5px solid rgba(0,255,255,0.35); border-radius: 14px; margin: 18px -6px 14px; overflow: visible; cursor:pointer; transition: 0.2s; }
+.match-card2 { position:relative; background: var(--match-bg); border: 1.5px solid rgba(0,255,255,0.35); border-radius: 14px; margin: 10px -8px 8px; overflow: visible; cursor:pointer; transition: 0.2s; }
 .match-card2.live { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,255,255,0.3); }
 .match-card2.finished { opacity: 0.5; }
 .league-pill { position:absolute; top:-12px; left:50%; transform: translateX(-50%); background:#000; border:1px solid rgba(0,255,255,0.3); color:#fff; font-size:10px; font-weight:700; padding:5px 14px; border-radius:20px; white-space:nowrap; max-width:88%; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:5px; z-index:2; }
@@ -174,6 +175,29 @@ body.video-playing .live-fixed-top { display: none; }
 .nav i{ width:22px; height:22px; margin-bottom:5px; }
 
 .video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top:65px; z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
+#artplayer-app{ width:100%; height:100%; }
+/* --- ArtPlayer theme override (match neon cyan theme) --- */
+.art-video-player{ --art-theme: #00ffff; }
+.art-video-player .art-progress .art-progress-loaded{ background: rgba(0,255,255,0.3); }
+.art-video-player .art-progress .art-progress-played{ background: var(--cyan); }
+.art-video-player .art-progress .art-progress-indicator{ background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.art-video-player .art-controls{ background: linear-gradient(0deg, rgba(0,0,0,0.75), transparent); }
+/* --- Fix: make ArtPlayer truly fill the screen in fullscreen (native + web fallback) --- */
+.video-container:fullscreen, .video-container:-webkit-full-screen { aspect-ratio: unset !important; width:100vw !important; height:100vh !important; }
+.art-video-player.art-fullscreen,
+.art-video-player.art-fullscreen-web{
+    width:100vw !important;
+    height:100vh !important;
+    aspect-ratio: unset !important;
+}
+.art-video-player.art-fullscreen .art-video,
+.art-video-player.art-fullscreen-web .art-video{
+    width:100% !important;
+    height:100% !important;
+    object-fit: contain;
+}
+/* --- Custom swipe gesture indicator (volume / brightness / seek) --- */
+#gesture-hint{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.75); color:#fff; padding:10px 18px; border-radius:30px; font-size:14px; font-weight:700; display:none; align-items:center; gap:8px; z-index:250; pointer-events:none; border:1px solid var(--cyan); }
 video{ width:100%; height:100%; object-fit:contain; }
 #server-box { display: none; padding: 10px; background: #000; gap: 10px; justify-content: center; border-bottom: 1px solid #222; }
 .server-btn { padding: 6px 12px; background: #1a1a1a; color: #fff; border: 1px solid var(--cyan); border-radius: 5px; font-size: 11px; cursor: pointer; }
@@ -210,7 +234,7 @@ video{ width:100%; height:100%; object-fit:contain; }
     <div class="popup-box" tabindex="0">
         <i data-lucide="download-cloud" style="width:50px; height:50px; color:var(--cyan); margin-bottom:15px; margin-left:auto; margin-right:auto;"></i>
         <h2 style="font-family:'Orbitron'; font-size:18px; margin-bottom:10px;">Update Available!</h2>
-        <p style="font-size:12px; color:#aaa; margin-bottom:20px;">নতুন ভার্সন চলে এসেছে! এখনই আপডেট করুন।</p>
+        <p style="font-size:12px; color:#aaa; margin-bottom:20px;">A new version is available! Please update now.</p>
         <div id="new-ver-label" style="font-size:10px; color:var(--cyan); margin-bottom:20px; font-weight:bold;"></div>
         <button id="update-confirm-btn" class="auth-btn" style="width:100%; font-weight:700; height: 45px; background:var(--cyan); border:none; border-radius:12px; cursor:pointer;">UPDATE NOW</button>
     </div>
@@ -250,7 +274,7 @@ video{ width:100%; height:100%; object-fit:contain; }
         <input type="text" id="search-input" class="auth-input" style="width:100%; border-radius:10px; margin-bottom:0;" placeholder="Search..." onkeyup="filterItems()">
     </div>
 
-    <div class="video-container"><video id="video" controls playsinline></video></div>
+    <div class="video-container"><div id="artplayer-app"></div></div>
     <div id="server-box"></div>
 
     <div class="main">
@@ -354,11 +378,63 @@ let favorites = JSON.parse(localStorage.getItem('neon_favs')) || [];
 let totalNotifs = 0;
 let adultConfig = { isVisible: false, password: "" };
 
+/* --- PUSH NOTIFICATIONS (Firebase Cloud Messaging) --- */
+// এই VAPID key-টা বসাতে হবে: Firebase Console > Project Settings > Cloud Messaging > Web Push certificates > Generate key pair
+const VAPID_KEY = "BPiqkdKL3_G__QRzc8NvNJPkUWAhqzRmfH4V_qMHaSRXwtY7i3GNSUpOuk9C3h1RgGcc3kEO6WYjQ7umEalX6H0";
+let messaging = null;
+try { if (firebase.messaging && firebase.messaging.isSupported()) messaging = firebase.messaging(); }
+catch (e) { console.log('FCM not supported on this browser'); }
+
+async function enablePushNotifications() {
+    if (!messaging) return;
+    if (VAPID_KEY === "PASTE_YOUR_VAPID_KEY_HERE") { console.log('VAPID key set korte hobe FCM chalu korar age'); return; }
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+        if (token) {
+            await db.collection('fcm_tokens').doc(token).set({
+                token: token,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+            localStorage.setItem('fcm_enabled', 'true');
+        }
+    } catch (err) { console.error('FCM token error:', err); }
+}
+
+// অ্যাপ খোলা অবস্থায় (foreground) নতুন পুশ নোটিফিকেশন এলে টোস্ট দেখাবে
+if (messaging) {
+    messaging.onMessage((payload) => {
+        const title = (payload.notification && payload.notification.title) || 'New Notification';
+        showToast(`🔔 ${title}`, 'success', 6000);
+    });
+}
+
+// প্রথমবার অ্যাপ খোলার কয়েক সেকেন্ড পর একবার পারমিশন চাইবে
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof Notification === 'undefined') return;
+        if (Notification.permission === 'default' && !localStorage.getItem('fcm_asked')) {
+            localStorage.setItem('fcm_asked', 'true');
+            enablePushNotifications();
+        } else if (Notification.permission === 'granted' && localStorage.getItem('fcm_enabled') !== 'true') {
+            enablePushNotifications();
+        }
+    }, 4000);
+});
+
 const btnLoaderHTML = `<div class="btn-loader"><div class="loader-bars-sm"><div></div><div></div><div></div></div><span>Processing...</span></div>`;
 
 /* DEFAULT LOGO (shown when a channel/category has no logo set) */
 const DEFAULT_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#161616"/><rect x="14" y="20" width="36" height="24" rx="4" fill="none" stroke="#00ffff" stroke-width="3"/><path d="M24 14l8 8 8-8" fill="none" stroke="#00ffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="5" fill="#00ffff"/></svg>`;
 const DEFAULT_LOGO = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(DEFAULT_LOGO_SVG);
+// Names longer than 10 characters slide left-to-right instead of getting cut off
+function marqueeName(name) {
+    name = name || '';
+    return name.length > 10 ? `<span class="marquee-wrap"><span class="marquee-inner">${name}</span></span>` : name;
+}
 
 /* TOAST NOTIFICATIONS */
 function showToast(msg, type, duration) {
@@ -375,11 +451,11 @@ function showToast(msg, type, duration) {
 let clearSlowNetTimer = null;
 function checkNetworkOnStart() {
     if(!navigator.onLine) {
-        showToast("⚠️ ইন্টারনেট সংযোগ নেই। নেট চালু করে আবার চেষ্টা করুন।", "warning", 6000);
+        showToast("⚠️ No internet connection. Please turn on the network and try again.", "warning", 6000);
         return;
     }
     const slowTimer = setTimeout(() => {
-        showToast("⚠️ ইন্টারনেট স্লো মনে হচ্ছে, লোড হতে একটু সময় লাগতে পারে।", "warning", 6000);
+        showToast("⚠️ Internet seems slow, it may take a moment to load.", "warning", 6000);
     }, 4000);
     clearSlowNetTimer = () => clearTimeout(slowTimer);
 }
@@ -393,8 +469,8 @@ function toggleFavoriteFromCard(card) {
     const data = decodeChan(card.getAttribute('data-channel'));
     if(!data) return;
     const idx = favorites.findIndex(f => f.name === data.name && f.u1 === data.u1);
-    if(idx > -1) { favorites.splice(idx, 1); card.classList.remove('is-fav'); showToast(`${data.name} ফেভারেট থেকে সরানো হলো`); }
-    else { favorites.push(data); card.classList.add('is-fav'); showToast(`⭐ ${data.name} ফেভারেটে যোগ হলো`); }
+    if(idx > -1) { favorites.splice(idx, 1); card.classList.remove('is-fav'); showToast(`${data.name} removed from favorites`); }
+    else { favorites.push(data); card.classList.add('is-fav'); showToast(`⭐ ${data.name} added to favorites`); }
     localStorage.setItem('neon_favs', JSON.stringify(favorites));
     renderFavs();
 }
@@ -443,21 +519,21 @@ let eventsCache = [];
 let selectedEventCategory = 'All';
 let selectedEventStatus = 'All';
 
-// ম্যাচের প্রকৃত অবস্থা (Live/Upcoming/Finished) সময়ের হিসেবে বের করে
+// Determines the actual match status (Live/Upcoming/Finished) based on time
 function computeEventTiming(ev) {
     let start = null;
     if (ev.startAt) {
         start = (ev.startAt && typeof ev.startAt.toDate === 'function') ? ev.startAt.toDate() : new Date(ev.startAt);
     }
     if (!start || isNaN(start.getTime())) {
-        // startAt না থাকলে অ্যাডমিনের ম্যানুয়াল status ফলব্যাক হিসেবে ব্যবহার হবে
+        // If startAt is missing, fall back to the admin's manual status
         return { status: ev.status === 'Live' ? 'Live' : (ev.status === 'Finished' ? 'Finished' : 'Upcoming'), start: null, end: null };
     }
     const durHrs = ev.durationHours || (ev.category === 'Cricket' ? 8 : (['Boxing', 'MMA', 'UFC'].includes(ev.category) ? 4 : 3));
     const end = new Date(start.getTime() + durHrs * 3600000);
     const now = new Date();
     let status;
-    if (ev.forceStatus) status = ev.forceStatus; // অ্যাডমিন চাইলে ম্যানুয়ালি ওভাররাইড করতে পারবে
+    if (ev.forceStatus) status = ev.forceStatus; // Admin can manually override this if needed
     else if (now < start) status = 'Upcoming';
     else if (now <= end) status = 'Live';
     else status = 'Finished';
@@ -466,21 +542,21 @@ function computeEventTiming(ev) {
 
 function formatDMY(d) { const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`; }
 function formatTime12(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; }
+function formatCountdown(start) {
+    const diffMs = start - new Date();
+    if (diffMs <= 0) return 'Starting soon';
+    const mins = Math.floor(diffMs / 60000), hrs = Math.floor(mins / 60), days = Math.floor(hrs / 24);
+    if (days > 0) return `${days}d ${hrs % 24}h`;
+    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
+    return `${mins}m`;
+}
 function formatElapsed(ms) {
     const totalSec = Math.max(0, Math.floor(ms / 1000));
     const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
-function formatCountdownClock(target) {
-    const diffMs = target - new Date();
-    if (diffMs <= 0) return 'শুরু হচ্ছে...';
-    const totalSec = Math.floor(diffMs / 1000);
-    const days = Math.floor(totalSec / 86400);
-    const hms = formatElapsed((totalSec % 86400) * 1000);
-    return days > 0 ? `${days}d ${hms}` : hms;
-}
 
-/* খেলার category অনুযায়ী আইকন (emoji) */
+/* Icon (emoji) based on the sport category */
 const CATEGORY_ICONS = { Football: '⚽', Soccer: '⚽', Cricket: '🏏', Boxing: '🥊', Basketball: '🏀', Baseball: '⚾', Rugby: '🏉', Tennis: '🎾', Hockey: '🏒', MMA: '🥋', UFC: '🥋', Volleyball: '🏐', Golf: '⛳', Racing: '🏎️', WWE: '🤼' };
 function categoryIcon(cat) { return CATEGORY_ICONS[cat] || '🏆'; }
 
@@ -489,17 +565,17 @@ function renderMatchCard(ev, timing) {
     const dateStr = timing.start ? formatDMY(timing.start) : (ev.date || '');
     const timeStr = timing.start ? formatTime12(timing.start) : (ev.time || '');
     let statusLine;
+    const countdownAttr = (status === 'Upcoming' && timing.start) ? ` data-countdown-timer="${timing.start.toISOString()}"` : '';
     if (status === 'Live') statusLine = `<span class="live-dot"></span>Live Now`;
     else if (status === 'Finished') statusLine = `Match Finished`;
-    else if (timing.start) statusLine = `<span data-countdown-timer="${timing.start.toISOString()}">Starts in ${formatCountdownClock(timing.start)}</span>`;
-    else statusLine = ev.time ? `Match Starts at ${ev.time}` : 'Upcoming';
+    else statusLine = timing.start ? `Starts in ${formatCountdown(timing.start)}` : (ev.time ? `Match Starts at ${ev.time}` : 'Upcoming');
 
     if (ev.layoutType === 'single') {
         return `<div class="match-card2 ${status.toLowerCase()}" tabindex="0" onclick="prepareStream('${ev.url1}','${ev.url2}','${ev.url3}')" style="margin-top:12px;">
             ${status === 'Live' ? '<div class="live-badge-corner"><span class="live-dot"></span>LIVE</div>' : (ev.hot ? '<div class="hot-ribbon">Hot</div>' : '')}
             <img src="${ev.poster || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'" style="width:100%; height:78px; object-fit:cover; border-radius:14px 14px 0 0; display:block;">
             <div style="padding:7px 10px 2px; text-align:center; font-family:'Orbitron'; font-size:10px; color:var(--cyan);">${ev.headline || ''}</div>
-            <div class="mc2-status ${status.toLowerCase()}" style="padding:5px;">${statusLine}</div>
+            <div class="mc2-status ${status.toLowerCase()}" style="padding:5px;"${countdownAttr}>${statusLine}</div>
         </div>`;
     }
 
@@ -511,18 +587,18 @@ function renderMatchCard(ev, timing) {
         ${ev.hot ? '<div class="hot-ribbon">Hot</div>' : ''}
         <div class="league-pill">${ev.leagueIcon ? `<img src="${ev.leagueIcon}" class="league-icon">` : categoryIcon(ev.category)} ${ev.category ? ev.category + ' || ' : ''}${ev.league || ev.headline || ''}</div>
         <div class="mc2-body">
-            <div class="mc2-team"><img src="${ev.logoA || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${ev.teamA || ''}</p></div>
+            <div class="mc2-team"><img src="${ev.logoA || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ev.teamA || '')}</p></div>
             ${centerHTML}
-            <div class="mc2-team"><img src="${ev.logoB || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${ev.teamB || ''}</p></div>
+            <div class="mc2-team"><img src="${ev.logoB || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ev.teamB || '')}</p></div>
         </div>
-        <div class="mc2-status ${status.toLowerCase()}">${statusLine}</div>
+        <div class="mc2-status ${status.toLowerCase()}"${countdownAttr}>${statusLine}</div>
     </div>`;
 }
 
 function renderEvents() {
     const withTiming = eventsCache.map(ev => ({ ev, timing: computeEventTiming(ev) }));
 
-    // ফিক্সড বেস ক্যাটাগরি (সবসময় দেখাবে, ইভেন্ট না থাকলেও কাউন্ট 0 দেখাবে) + ডেটাতে থাকা অতিরিক্ত যেকোনো ক্যাটাগরি
+    // Fixed base categories (always shown, count 0 if no events) + any extra category found in the data
     const BASE_CATEGORIES = ['Football', 'Boxing', 'Basketball', 'Baseball', 'Rugby', 'MMA', 'Tennis'];
     const catNames = [...BASE_CATEGORIES];
     withTiming.forEach(x => { if (x.ev.category && !catNames.includes(x.ev.category)) catNames.push(x.ev.category); });
@@ -567,25 +643,26 @@ function renderEvents() {
 
     const list = document.getElementById("event-list");
     if (list) {
-        list.innerHTML = finalList.length ? finalList.map(x => renderMatchCard(x.ev, x.timing)).join('') : "<p style='color:#555; text-align:center; padding:30px 0;'>কোনো ম্যাচ নেই।</p>";
+        list.innerHTML = finalList.length ? finalList.map(x => renderMatchCard(x.ev, x.timing)).join('') : "<p style='color:#555; text-align:center; padding:30px 0;'>No matches available.</p>";
     }
     lucide.createIcons();
 }
 function setEventCategory(cat) { selectedEventCategory = cat; selectedEventStatus = 'All'; renderEvents(); }
 function setEventStatus(st) { selectedEventStatus = st; renderEvents(); }
-// প্রতি সেকেন্ডে শুধু Live ম্যাচের রানিং টাইমার আপডেট হবে (পুরো লিস্ট রি-রেন্ডার না করেই)
+// Every second, only update the running timer of Live matches (without re-rendering the whole list)
 setInterval(() => {
     document.querySelectorAll('[data-live-timer]').forEach(el => {
         const start = new Date(el.getAttribute('data-live-timer'));
         const clock = el.querySelector('.live-clock');
         if (clock && !isNaN(start.getTime())) clock.innerText = formatElapsed(new Date() - start);
     });
+    // Update the countdown for upcoming matches every second
     document.querySelectorAll('[data-countdown-timer]').forEach(el => {
-        const target = new Date(el.getAttribute('data-countdown-timer'));
-        if (!isNaN(target.getTime())) el.innerText = 'Starts in ' + formatCountdownClock(target);
+        const start = new Date(el.getAttribute('data-countdown-timer'));
+        if (!isNaN(start.getTime())) el.innerHTML = `Starts in ${formatCountdown(start)}`;
     });
 }, 1000);
-// প্রতি মিনিটে রি-চেক করবে যাতে সময় শেষ হয়ে গেলে ম্যাচ অটো Finished-এ চলে যায়
+// Re-check every minute so a match auto-moves to Finished once its time is up
 setInterval(() => { if (eventsCache.length) renderEvents(); }, 60000);
 
 function loadData() {
@@ -641,14 +718,14 @@ function setProfilePhoto(e) {
             try {
                 localStorage.setItem('neon_photo_' + auth.currentUser.uid, dataUrl);
                 loadProfilePhoto(auth.currentUser.uid);
-            } catch(err) { alert("ছবি সেভ করা যায়নি, অন্য একটি ছবি ট্রাই করুন।"); }
+            } catch(err) { alert("Could not save the image, please try another one."); }
         };
         img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
 }
 
-/* LOW QUALITY TOGGLE (ON = ভালো কোয়ালিটি, OFF = ডেটা সেভ) */
+/* LOW QUALITY TOGGLE (ON = better quality, OFF = data saver) */
 function applyQualityToggleUI() {
     const isHighQuality = localStorage.getItem('neon_low_quality_off') !== 'false'; // default true (ON = good quality)
     document.getElementById("quality-toggle").classList.toggle("on", isHighQuality);
@@ -661,21 +738,21 @@ function toggleLowQuality() {
     applyStreamQuality();
 }
 function applyStreamQuality() {
-    if(!hlsInst) return;
+    if(!art || !art.hls) return;
     const highQuality = localStorage.getItem('neon_low_quality_off') !== 'false';
-    if(highQuality) { hlsInst.currentLevel = -1; /* auto / best quality */ }
-    else if(hlsInst.levels && hlsInst.levels.length) { hlsInst.currentLevel = 0; /* lowest level = data saver */ }
+    if(highQuality) { art.hls.currentLevel = -1; /* auto / best quality */ }
+    else if(art.hls.levels && art.hls.levels.length) { art.hls.currentLevel = 0; /* lowest level = data saver */ }
 }
 
 /* EXIT APP */
 function exitApp() {
-    if(confirm('অ্যাপ থেকে বের হতে চান?')) {
+    if(confirm('Do you want to exit the app?')) {
         window.close();
-        setTimeout(() => { if(!window.closed) alert("এই ডিভাইসে অ্যাপটি স্বয়ংক্রিয়ভাবে বন্ধ করা যাচ্ছে না। দয়া করে ম্যানুয়ালি বন্ধ করুন।"); }, 300);
+        setTimeout(() => { if(!window.closed) alert("This app can't be closed automatically on this device. Please close it manually."); }, 300);
     }
 }
 
-/* UPDATE LOGIC (মেন্ডেটরি — ভার্সন না মিললে অ্যাপ ওপেন হবে না) */
+/* UPDATE LOGIC (mandatory — the app won't open if the version doesn't match) */
 let splashTimerDone = false;
 let versionOK = true;
 function revealApp() {
@@ -726,10 +803,10 @@ function handleAdultLoginFlow() {
         const authArea = document.getElementById("adult-auth-section");
         const listArea = document.getElementById("adult-channel-list");
         if(!userData.adultPin) {
-            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">১৮+ ফোল্ডারের জন্য ৪ সংখ্যার একটি পিন সেট করুন।</p><input type="number" id="new-adult-pin" class="auth-input" placeholder="Set 4 Digit PIN"><button class="auth-btn" onclick="registerAdultPin()">Set PIN</button></div>`;
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">Set a 4 digit PIN for the 18+ folder.</p><input type="number" id="new-adult-pin" class="auth-input" placeholder="Set 4 Digit PIN"><button class="auth-btn" onclick="registerAdultPin()">Set PIN</button></div>`;
             authArea.style.display = "block"; listArea.style.display = "none";
         } else {
-            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">আপনার পিন নম্বরটি দিয়ে প্রবেশ করুন।</p><input type="number" id="login-adult-pin" class="auth-input" placeholder="Enter PIN"><button class="auth-btn" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><p style="font-size:11px; color:#aaa; margin-bottom:15px;">Enter your PIN number to continue.</p><input type="number" id="login-adult-pin" class="auth-input" placeholder="Enter PIN"><button class="auth-btn" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
             authArea.style.display = "block"; listArea.style.display = "none";
         }
     });
@@ -749,7 +826,7 @@ function verifyAdultPin(correctPin) {
 function loadAdultChannels() {
     db.collection("adult_channels").onSnapshot(snap => {
         const list = document.getElementById("adult-channel-list"); list.innerHTML = "";
-        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${ch.name}</p></div>`; });
+        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`; });
     });
 }
 
@@ -762,12 +839,26 @@ function openCategory(name) {
             const ch = doc.data();
             const chanData = { name: ch.name, logo: ch.logo || DEFAULT_LOGO, u1: ch.url1 || '', u2: ch.url2 || '', u3: ch.url3 || '' };
             const favClass = isFav(chanData.name, chanData.u1) ? ' is-fav' : '';
-            list.innerHTML += `<div class="card${favClass}" tabindex="0" data-channel="${encodeChan(chanData)}" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${ch.name}</p></div>`;
+            list.innerHTML += `<div class="card${favClass}" tabindex="0" data-channel="${encodeChan(chanData)}" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`;
         });
     });
 }
 
-let hlsInst = null;
+let art = null;
+let currentBrightness = 1;
+// Some mobile browsers silently block unmuted autoplay; try normal play first, then muted, then unmute shortly after
+function attemptAutoplay() {
+    if (!art) return;
+    const p = art.play();
+    if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+            art.muted = true;
+            art.play().then(() => {
+                setTimeout(() => { if (art) art.muted = false; }, 400);
+            }).catch(() => {});
+        });
+    }
+}
 function prepareStream(u1, u2, u3) {
     const sBox = document.getElementById("server-box"); sBox.innerHTML = "";
     if (u1 || u2 || u3) {
@@ -782,32 +873,187 @@ function prepareStream(u1, u2, u3) {
 function play(url, btn) {
     if(!url) return;
     if(btn) { document.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
-    const vCont = document.querySelector(".video-container"), vid = document.getElementById("video");
-    vCont.style.display = "block"; 
-    document.body.classList.add("video-playing");
-    
-    if(hlsInst) hlsInst.destroy();
-    
-    // --- অটো ফরমেট ডিটেকশন (MP4, TS, MKV, M3U8) ---
-    if(url.includes(".m3u8")) {
-        if(Hls.isSupported()){
-            hlsInst = new Hls();
-            hlsInst.loadSource(url);
-            hlsInst.attachMedia(vid);
-            hlsInst.on(Hls.Events.MANIFEST_PARSED,()=>{ vid.play(); applyStreamQuality(); });
-        } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
-            vid.src = url;
-            vid.play();
-        }
-    } else {
-        // সরাসরি MP4, MKV, TS প্লে করার চেষ্টা করবে
-        vid.src = url;
-        vid.play();
-    }
+    const vCont = document.querySelector(".video-container");
+    vCont.style.display = "block";
+    toggleMatchFilters(true);
+
+    if(art) { art.destroy(false); art = null; }
+    currentBrightness = 1;
+
+    art = new Artplayer({
+        container: '#artplayer-app',
+        url: url,
+        autoplay: true,
+        playsInline: true,
+        autoSize: false,
+        autoOrientation: true,
+        fullscreen: true,
+        fullscreenWeb: true,
+        pip: true,
+        setting: true,
+        aspectRatio: true,
+        flip: true,
+        playbackRate: true,
+        screenshot: true,
+        hotkey: true,
+        gesture: false, // handled manually below (volume + brightness + seek swipe)
+        fastForward: true,
+        lock: true,
+        theme: '#00ffff',
+        volume: 1,
+        moreVideoAttr: { playsInline: true },
+        controls: [
+            {
+                name: 'cast',
+                position: 'right',
+                index: 10,
+                html: '<i data-lucide="cast" style="width:20px;height:20px;"></i>',
+                tooltip: 'Cast to TV',
+                click: function () { castToDevice(); },
+            },
+        ],
+        // --- Auto format detection: HLS(.m3u8) uses hls.js, others play natively (MP4/TS/MKV) ---
+        type: url.includes('.m3u8') ? 'm3u8' : '',
+        customType: {
+            m3u8: function (video, url) {
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    art.hls = hls;
+                    art.on('destroy', () => hls.destroy());
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        applyStreamQuality();
+                        attemptAutoplay();
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = url;
+                }
+            },
+        },
+    });
+
+    art.on('ready', () => { lucide.createIcons(); attemptAutoplay(); });
+    initGestureControls();
     window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function stopStream() { const c = document.querySelector(".video-container"), v = document.getElementById("video"); if(c && c.style.display === "block") { v.pause(); v.src = ""; if(hlsInst) hlsInst.destroy(); c.style.display = "none"; document.getElementById("server-box").style.display = "none"; document.body.classList.remove("video-playing"); } }
+function stopStream() {
+    const c = document.querySelector(".video-container");
+    if(c && c.style.display === "block") {
+        if(art) { art.destroy(false); art = null; }
+        c.style.display = "none";
+        document.getElementById("server-box").style.display = "none";
+        toggleMatchFilters(false);
+    }
+}
+
+/* --- CHROMECAST / AIRPLAY --- */
+function castToDevice() {
+    if(!art) return;
+    const videoEl = art.template.$video;
+    if (videoEl.webkitShowPlaybackTargetPicker) {
+        // AirPlay (Safari / iOS / macOS)
+        videoEl.webkitShowPlaybackTargetPicker();
+    } else if (videoEl.remote && typeof videoEl.remote.prompt === 'function') {
+        // Remote Playback API (Chromecast on Chrome/Edge/Android)
+        videoEl.remote.prompt().catch(() => showToast('No cast device found nearby', 'warning'));
+    } else {
+        showToast('Casting is not supported on this browser', 'warning');
+    }
+}
+
+/* --- CUSTOM SWIPE GESTURES: right side = volume, left side = brightness, horizontal = seek --- */
+let gestureState = null;
+function initGestureControls() {
+    const zone = document.querySelector('.video-container');
+    if (!zone || zone._gestureBound) return;
+    zone._gestureBound = true;
+
+    zone.addEventListener('touchstart', (e) => {
+        if (!art || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const rect = zone.getBoundingClientRect();
+        gestureState = {
+            startX: t.clientX, startY: t.clientY,
+            side: (t.clientX - rect.left) < rect.width / 2 ? 'left' : 'right',
+            mode: null,
+            startVolume: art.volume,
+            startBrightness: currentBrightness,
+            lastDX: 0,
+        };
+    }, { passive: true });
+
+    zone.addEventListener('touchmove', (e) => {
+        if (!gestureState || !art) return;
+        const t = e.touches[0];
+        const dx = t.clientX - gestureState.startX;
+        const dy = t.clientY - gestureState.startY;
+        const rect = zone.getBoundingClientRect();
+
+        if (gestureState.mode === null) {
+            if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) gestureState.mode = 'seek';
+            else if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) gestureState.mode = 'vertical';
+            else return;
+        }
+
+        if (gestureState.mode === 'seek') {
+            e.preventDefault();
+            gestureState.lastDX = dx;
+            const deltaSec = Math.round((dx / rect.width) * 90);
+            showGestureHint('seek', (deltaSec >= 0 ? '+' : '') + deltaSec + 's');
+        } else {
+            e.preventDefault();
+            const change = (-dy / rect.height) * 1.3;
+            if (gestureState.side === 'right') {
+                const vol = Math.min(1, Math.max(0, gestureState.startVolume + change));
+                art.volume = vol;
+                art.muted = false;
+                const videoEl = art.template && art.template.$video;
+                if (videoEl) { videoEl.volume = vol; videoEl.muted = false; }
+                showGestureHint('volume', Math.round(vol * 100) + '%');
+            } else {
+                currentBrightness = Math.min(1.8, Math.max(0.3, gestureState.startBrightness + change));
+                const videoEl = art.template && art.template.$video;
+                if (videoEl) videoEl.style.filter = 'brightness(' + currentBrightness + ')';
+                showGestureHint('brightness', Math.round(currentBrightness * 100) + '%');
+            }
+        }
+    }, { passive: false });
+
+    zone.addEventListener('touchend', () => {
+        if (gestureState && gestureState.mode === 'seek' && art) {
+            const deltaSec = Math.round((gestureState.lastDX / zone.clientWidth) * 90);
+            art.seek = Math.max(0, art.currentTime + deltaSec);
+        }
+        hideGestureHint();
+        gestureState = null;
+    });
+}
+
+function showGestureHint(type, text) {
+    let hint = document.getElementById('gesture-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'gesture-hint';
+        document.querySelector('.video-container').appendChild(hint);
+    }
+    const icons = { seek: '⏩', volume: '🔊', brightness: '☀️' };
+    hint.innerHTML = `<span>${icons[type] || ''}</span> ${text}`;
+    hint.style.display = 'flex';
+}
+function hideGestureHint() {
+    const hint = document.getElementById('gesture-hint');
+    if (hint) hint.style.display = 'none';
+}
+
+// Hides the category and status filters (All/Football/Cricket/Live/Upcoming) while a match is playing
+function toggleMatchFilters(hide) {
+    const catRow = document.getElementById("event-cat-filter");
+    const statusRow = document.getElementById("event-status-filter");
+    if(catRow) catRow.style.display = hide ? "none" : "flex";
+    if(statusRow) statusRow.style.display = hide ? "none" : "flex";
+}
 
 function switchPage(id, el){
     if(id === 'settings' || id === 'adult-content' || id === 'favorites' || id === 'notifications') stopStream(); 
@@ -832,8 +1078,8 @@ function showPrivacy() { alert("Privacy Policy:\n\ Neon Live TV respects your pr
 
 function renderFavs() {
     const list = document.getElementById("favorites-list"); list.innerHTML = "";
-    if(favorites.length === 0) list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center;'>Empty. চ্যানেলের উপর কিছুক্ষণ চেপে ধরে রাখলে এখানে যোগ হবে।</p>";
-    favorites.forEach(f => { list.innerHTML += `<div class="card is-fav" tabindex="0" data-channel="${encodeChan(f)}" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${f.name}</p></div>`; });
+    if(favorites.length === 0) list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center;'>Empty. Press and hold a channel to add it here.</p>";
+    favorites.forEach(f => { list.innerHTML += `<div class="card is-fav" tabindex="0" data-channel="${encodeChan(f)}" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(f.name)}</p></div>`; });
 }
 
 async function login(){ const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value; if(!e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; }); }
