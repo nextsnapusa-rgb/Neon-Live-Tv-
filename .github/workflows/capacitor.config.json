@@ -1,0 +1,17 @@
+{
+  "name": "neon-live-tv",
+  "version": "1.0.0",
+  "description": "Neon Live TV Android App",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Build not required for plain HTML project'",
+    "copy": "cap copy",
+    "sync": "cap sync",
+    "open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}
