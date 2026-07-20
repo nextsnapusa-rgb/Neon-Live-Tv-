@@ -13,7 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <!-- mpegts.js (for .ts / raw MPEG-TS and .flv streams, which browsers can't play natively) -->
-<script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js"></script>
 
 <!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -868,7 +868,7 @@ function detectPlayType(url) {
     const clean = url.split('?')[0].toLowerCase();
     if (clean.includes('.m3u8')) return 'm3u8';
     if (clean.endsWith('.ts') || clean.includes('.ts?') || clean.endsWith('.flv')) return 'customTs';
-    return 'auto'; // mp4, webm ইত্যাদি — ব্রাউজারের নিজস্ব নেটিভ প্লেব্যাক ব্যবহার হবে
+    return null; // mp4, webm ইত্যাদি — ArtPlayer কে নিজে থেকে এক্সটেনশন দেখে ঠিক করতে দেওয়া হচ্ছে (type সেট করা হচ্ছে না)
 }
 
 function prepareStream(u1, u2, u3) {
@@ -892,7 +892,7 @@ function play(url, btn) {
     if(art) { art.destroy(false); art = null; }
     currentBrightness = 1;
 
-    art = new Artplayer({
+    const artOptions = {
         container: '#artplayer-app',
         url: url,
         autoplay: true,
@@ -924,8 +924,7 @@ function play(url, btn) {
                 click: function () { castToDevice(); },
             },
         ],
-        // --- Auto format detection: HLS(.m3u8) uses hls.js, .ts/.flv uses mpegts.js, others (MP4 etc) use native browser playback ---
-        type: detectPlayType(url),
+        // --- Auto format detection: HLS(.m3u8) uses hls.js, .ts/.flv uses mpegts.js, others (MP4 etc) use ArtPlayer's own native detection ---
         customType: {
             m3u8: function (video, url) {
                 if (Hls.isSupported()) {
@@ -957,9 +956,15 @@ function play(url, btn) {
                 }
             },
         },
-    });
+    };
+    // MP4 এর মতো নেটিভ ফরম্যাটের জন্য 'type' একদম বাদ দেওয়া হচ্ছে, যাতে ArtPlayer নিজের ডিফল্ট ডিটেকশন ব্যবহার করে
+    const playType = detectPlayType(url);
+    if (playType) artOptions.type = playType;
+
+    art = new Artplayer(artOptions);
 
     art.on('ready', () => { lucide.createIcons(); attemptAutoplay(); });
+    art.on('error', () => { showToast('⚠️ এই সোর্স/লিংক প্লে করা যাচ্ছে না', 'warning'); });
     initGestureControls();
     window.scrollTo({top:0, behavior:'smooth'});
 }
