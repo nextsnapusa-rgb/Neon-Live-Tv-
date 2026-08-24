@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <!-- Viewport to disable zoom -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Neon Live Tv</title>
 
-<!-- PWA: Add to Home Screen icon & app identity -->
+<!-- App / Shortcut / Install icon -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/jpeg" href="https://i.ibb.co/6JD2SV81/20260730-110227.jpg">
+<link rel="shortcut icon" type="image/jpeg" href="https://i.ibb.co/6JD2SV81/20260730-110227.jpg">
 <link rel="apple-touch-icon" href="https://i.ibb.co/6JD2SV81/20260730-110227.jpg">
-<meta name="theme-color" content="#00ffff">
+<meta name="theme-color" content="#030303">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Neon Live Tv">
 
 <!-- Fonts -->
@@ -49,6 +49,8 @@
     --match-bg: #101820; 
     --green-glow: #00ff00;
     --neon-purple: #8A2BE2;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select: none; }
@@ -76,29 +78,6 @@ body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-seri
         width: 100% !important;
         height: 100% !important;
     }
-}
-
-/* --- FORCE TRUE FULLSCREEN (portrait too, when player fullscreen is toggled) --- */
-body.player-fullscreen-active .app-header,
-body.player-fullscreen-active .bottom-nav,
-body.player-fullscreen-active #server-box,
-body.player-fullscreen-active .main {
-    display: none !important;
-}
-body.player-fullscreen-active .video-container {
-    position: fixed !important;
-    inset: 0 !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 99999 !important;
-    aspect-ratio: unset !important;
-    border: none !important;
-}
-body.player-fullscreen-active #artplayer-app {
-    width: 100% !important;
-    height: 100% !important;
 }
 
 /* --- TV REMOTE FOCUS (TV ONLY) --- */
@@ -196,8 +175,14 @@ body.player-fullscreen-active #artplayer-app {
 #update-popup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:20000; align-items:center; justify-content:center; padding:20px; }
 .popup-box { background:#161616; border:1px solid var(--cyan); border-radius:24px; padding:30px; text-align:center; max-width:320px; width:100%; box-shadow: 0 0 30px rgba(0,255,255,0.2); }
 
+/* --- UPDATE DOWNLOAD PROGRESS BAR --- */
+#update-progress-wrap { display:none; margin-top:16px; }
+#update-progress-track { width:100%; height:8px; background:#222; border-radius:10px; overflow:hidden; }
+#update-progress-bar { height:100%; width:0%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); border-radius:10px; transition: width 0.15s linear; }
+#update-progress-text { font-size:11px; color: var(--cyan); margin-top:8px; font-weight:700; letter-spacing:0.5px; }
+
 /* COMMON ELEMENTS */
-.app-header { height: 65px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 500; }
+.app-header { height: calc(65px + var(--safe-top)); padding: var(--safe-top) 15px 0; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 500; }
 .header-logo { font-size: 22px; color: var(--white); letter-spacing: 0.5px; }
 .header-logo span { display: inline-block; animation: headerLogoPulse 2.4s ease-in-out infinite; }
 .header-logo span:nth-child(2) { animation-delay: 0.15s; }
@@ -283,67 +268,19 @@ body.player-fullscreen-active #artplayer-app {
 .menu-left { display: flex; align-items: center; gap: 15px; }
 .menu-item i { width: 18px; height: 18px; color: var(--cyan); }
 
-.bottom-nav{ position:fixed; bottom:0; width:100%; height:70px; background: rgba(10,10,10,0.95); backdrop-filter: blur(15px); display:flex; justify-content:space-around; border-top:1px solid #1a1a1a; z-index: 1000; }
+.bottom-nav{ position:fixed; bottom:0; width:100%; height: calc(70px + var(--safe-bottom)); padding-bottom: var(--safe-bottom); background: rgba(10,10,10,0.95); backdrop-filter: blur(15px); display:flex; justify-content:space-around; border-top:1px solid #1a1a1a; z-index: 1000; }
 .nav{ display:flex; flex-direction:column; align-items:center; justify-content: center; font-size:10px; color:#666; flex: 1; cursor: pointer; }
 .nav.active{ color:var(--cyan); }
 .nav i{ width:22px; height:22px; margin-bottom:5px; }
 
-.video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top:65px; z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
+.video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top: calc(65px + var(--safe-top)); z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
 #artplayer-app{ width:100%; height:100%; }
-
-/* --- ArtPlayer theme override — NEON REDESIGN --- */
-.art-video-player{
-    --art-theme: #00ffff;
-    border-radius: 0;
-}
+/* --- ArtPlayer theme override (match neon cyan theme) --- */
+.art-video-player{ --art-theme: #00ffff; }
 .art-video-player .art-progress .art-progress-loaded{ background: rgba(0,255,255,0.3); }
-.art-video-player .art-progress .art-progress-played{
-    background: linear-gradient(90deg, var(--neon-purple), var(--cyan));
-    box-shadow: 0 0 10px var(--cyan);
-}
-.art-video-player .art-progress .art-progress-indicator{
-    background: #fff;
-    box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan);
-    width: 13px; height: 13px;
-    border: 2px solid var(--cyan);
-}
-.art-video-player .art-progress { height: 4px; border-radius: 4px; }
-.art-video-player .art-progress:hover { height: 6px; }
-.art-video-player .art-controls{
-    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, transparent 100%);
-}
-.art-video-player .art-control-playAndPause svg,
-.art-video-player .art-control-fullscreen svg,
-.art-video-player .art-control-fullscreenWeb svg,
-.art-video-player .art-control-pip svg,
-.art-video-player .art-control-volume svg{
-    filter: drop-shadow(0 0 4px rgba(0,255,255,0.5));
-}
-.art-video-player .art-control:hover{
-    color: var(--cyan) !important;
-    transform: scale(1.15);
-    transition: 0.2s;
-}
-.art-video-player .art-bottom{ padding: 0 14px 10px; }
-.art-video-player .art-control-time{ font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 0 6px rgba(0,255,255,0.4); }
-.art-video-player .art-mask-layer{ background: rgba(0,0,0,0.15); }
-.art-video-player .art-icon-loading{ filter: drop-shadow(0 0 10px var(--cyan)); }
-.art-video-player .art-notice{
-    background: rgba(15,15,15,0.92);
-    border: 1px solid var(--cyan);
-    border-radius: 10px;
-    box-shadow: 0 0 12px rgba(0,255,255,0.25);
-}
-.art-video-player .art-state{ filter: drop-shadow(0 0 18px var(--cyan)); }
-.art-video-player .art-settings,
-.art-video-player .art-contextmenu{
-    background: rgba(12,12,12,0.97);
-    border: 1px solid rgba(0,255,255,0.3);
-    border-radius: 14px;
-    box-shadow: 0 0 24px rgba(0,255,255,0.18);
-}
-.art-video-player .art-settings-item:hover{ background: rgba(0,255,255,0.12); }
-
+.art-video-player .art-progress .art-progress-played{ background: var(--cyan); }
+.art-video-player .art-progress .art-progress-indicator{ background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.art-video-player .art-controls{ background: linear-gradient(0deg, rgba(0,0,0,0.75), transparent); }
 /* --- Fix: make ArtPlayer truly fill the screen in fullscreen (native + web fallback) --- */
 .video-container:fullscreen, .video-container:-webkit-full-screen { aspect-ratio: unset !important; width:100vw !important; height:100vh !important; }
 .art-video-player.art-fullscreen,
@@ -351,11 +288,6 @@ body.player-fullscreen-active #artplayer-app {
     width:100vw !important;
     height:100vh !important;
     aspect-ratio: unset !important;
-    position: fixed !important;
-    inset: 0 !important;
-    top: 0 !important;
-    left: 0 !important;
-    z-index: 99999 !important;
 }
 .art-video-player.art-fullscreen .art-video,
 .art-video-player.art-fullscreen-web .art-video{
@@ -370,7 +302,7 @@ video{ width:100%; height:100%; object-fit:contain; }
 .server-btn { padding: 6px 12px; background: #1a1a1a; color: #fff; border: 1px solid var(--cyan); border-radius: 5px; font-size: 11px; cursor: pointer; }
 .server-btn.active { background: var(--cyan); color: #000; font-weight: bold; }
 
-.main{ padding:20px; padding-bottom:120px; height: calc(100vh - 65px); overflow-y: auto; }
+.main{ padding:20px; padding-bottom: calc(120px + var(--safe-bottom)); height: calc(100vh - 65px - var(--safe-top)); overflow-y: auto; }
 .page{ display:none; }
 .page.active{ display:block; }
 .section-title { color: var(--white); margin-bottom: 20px; font-size: 14px; border-left: 3px solid var(--cyan); padding-left: 10px;}
@@ -418,6 +350,15 @@ video{ width:100%; height:100%; object-fit:contain; }
         <p style="font-size:12px; color:#aaa; margin-bottom:20px;">A new version is available! Please update now.</p>
         <div id="new-ver-label" style="font-size:10px; color:var(--cyan); margin-bottom:20px; font-weight:bold;"></div>
         <button id="update-confirm-btn" class="auth-btn" style="width:100%; font-weight:700; height: 45px; background:var(--cyan); border:none; border-radius:12px; cursor:pointer;">UPDATE NOW</button>
+
+        <!-- DOWNLOAD PROGRESS BAR -->
+        <div id="update-progress-wrap">
+            <div id="update-progress-track">
+                <div id="update-progress-bar"></div>
+            </div>
+            <p id="update-progress-text">0%</p>
+        </div>
+
         <p style="font-size:11px; color:#888; margin-top:14px; line-height:1.5;">
             ডাউনলোড হওয়ার পর নোটিফিকেশনে ট্যাপ করে ইনস্টল করুন। "Install unknown apps" পারমিশন চাইলে Allow করুন।
         </p>
@@ -482,7 +423,13 @@ video{ width:100%; height:100%; object-fit:contain; }
         </div>
 
         <div class="page" id="settings">
-            <h3 class="section-title">My Profile</h3>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+                <h3 class="section-title" style="margin-bottom:0;">My Profile</h3>
+                <div id="profile-clock" style="text-align:right; background:var(--card-bg); border:1px solid rgba(0,255,255,0.3); border-radius:12px; padding:6px 12px; box-shadow:0 0 8px rgba(0,255,255,0.12);">
+                    <div id="clock-time" style="font-size:14px; font-weight:700; color:var(--cyan); text-shadow:0 0 8px rgba(0,255,255,0.5); letter-spacing:0.5px; white-space:nowrap;">--:--:-- --</div>
+                    <div id="clock-date" style="font-size:9px; color:var(--dim); margin-top:2px; letter-spacing:0.3px; white-space:nowrap;">-- --- ----</div>
+                </div>
+            </div>
             <div class="profile-card">
                 <div class="profile-photo-wrap">
                     <div class="profile-photo" id="profile-photo"><i data-lucide="user"></i></div>
@@ -638,6 +585,13 @@ if (messaging) {
     });
 }
 
+/* When packaged as a native app (WebView/APK), this requests the OS notification
+   permission automatically the first time the app is opened after install.
+   NOTE: for the native permission dialog to appear on Android 13+, the APK-building
+   tool you use to convert this into an app (e.g. Median, WebIntoApp, GoNative etc.)
+   must also have its own "push notification" / POST_NOTIFICATIONS permission
+   toggle enabled in its dashboard/AndroidManifest — this JS call alone triggers
+   the web Notification API, the wrapper app needs to expose that as a native prompt. */
 window.addEventListener('load', () => {
     setTimeout(() => {
         if (typeof Notification === 'undefined') return;
@@ -659,6 +613,7 @@ function marqueeName(name) {
     return name.length > 10 ? `<span class="marquee-wrap"><span class="marquee-inner">${name}</span></span>` : name;
 }
 
+/* একটা কমন লোডিং স্পিনার - প্রতিটা পেজ/ক্যাটাগরিতে ডেটা লোড হওয়া পর্যন্ত এটা দেখাবে */
 function loadingHTML(text) {
     return `<div class="loading-spinner-wrap"><div class="loading-ring"></div><p>${text || 'Loading...'}</p></div>`;
 }
@@ -673,6 +628,7 @@ function showToast(msg, type, duration) {
     setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, duration || 3000);
 }
 
+/* ইনভাইট ফ্রেন্ডস - অ্যাপ ডাউনলোড লিংকসহ শেয়ার করবে, শেয়ার সাপোর্ট না থাকলে লিংক কপি করে দেবে */
 function inviteFriends() {
     const shareData = { title: 'Neon Live Tv', text: 'Neon Live Tv দিয়ে ফ্রি লাইভ স্পোর্টস, চ্যানেল আর স্ট্রিমিং দেখো! এখনই ডাউনলোড করো:', url: APP_SHARE_LINK };
     if (navigator.share) {
@@ -766,6 +722,7 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
+    /* Many Android TV / smart-TV browsers send Backspace or Escape for the remote's Back button */
     if (e.key === 'Backspace' || e.key === 'Escape') {
         const detailsEl = document.getElementById("cat-details");
         if (document.body.classList.contains('is-playing')) { stopStream(); e.preventDefault(); return; }
@@ -1073,7 +1030,8 @@ function listenForAutoUpdate() {
                 document.getElementById("app").style.display = "none";
                 document.getElementById("update-popup").style.display = "flex";
                 document.getElementById("new-ver-label").innerText = "VERSION: " + data.version;
-                document.getElementById("update-confirm-btn").onclick = function() { window.open(data.link, '_blank'); };
+                resetUpdateProgressUI();
+                document.getElementById("update-confirm-btn").onclick = function() { startAppUpdate(data.link); };
                 lucide.createIcons();
             } else {
                 versionOK = true;
@@ -1091,6 +1049,131 @@ function checkUpdate() {
         if (doc.exists && doc.data().version !== CURRENT_VERSION) { if (confirm(`Version ${doc.data().version} Available!`)) window.open(doc.data().link, '_blank'); }
         else alert("App is up to date! v" + CURRENT_VERSION);
     });
+}
+
+/* ============================================================
+   APP UPDATE FLOW — download progress bar + direct-install
+   ============================================================
+   1) প্রথমে চেষ্টা করে wrapper app (Median/GoNative/custom WebView)-এর
+      নিজস্ব native install bridge কল করতে — সেটা থাকলে ব্রাউজার-ডাউনলোড
+      ছাড়াই সরাসরি Android installer খুলে যাবে।
+   2) bridge না থাকলে fetch() দিয়ে % প্রোগ্রেস দেখিয়ে ডাউনলোড করে,
+      শেষে ব্রাউজারের ডাউনলোড ট্রিগার করে — নোটিফিকেশনে ট্যাপ করলে
+      ইনস্টলার খুলবে (আগের ফ্লো, কিন্তু এখন % সহ)।
+   ============================================================ */
+
+function resetUpdateProgressUI() {
+    const wrap = document.getElementById('update-progress-wrap');
+    const bar  = document.getElementById('update-progress-bar');
+    const text = document.getElementById('update-progress-text');
+    const btn  = document.getElementById('update-confirm-btn');
+    if (wrap) wrap.style.display = 'none';
+    if (bar)  bar.style.width = '0%';
+    if (text) text.innerText = '0%';
+    if (btn)  { btn.disabled = false; btn.innerText = 'UPDATE NOW'; }
+}
+
+async function startAppUpdate(url) {
+    if (!url) { showToast('⚠️ Update link not found', 'warning'); return; }
+
+    // 1) Native wrapper bridge থাকলে সেটা দিয়েই সরাসরি ইনস্টলার খোলার চেষ্টা
+    if (tryNativeInstall(url)) return;
+
+    // 2) fallback: fetch() দিয়ে প্রোগ্রেস % সহ ডাউনলোড
+    const btn  = document.getElementById('update-confirm-btn');
+    const wrap = document.getElementById('update-progress-wrap');
+    const bar  = document.getElementById('update-progress-bar');
+    const text = document.getElementById('update-progress-text');
+
+    btn.disabled = true;
+    btn.innerText = 'Downloading...';
+    wrap.style.display = 'block';
+    bar.style.width = '0%';
+    text.innerText = '0%';
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok || !res.body) throw new Error('Download failed: HTTP ' + res.status);
+
+        const total = parseInt(res.headers.get('Content-Length') || '0', 10);
+        const reader = res.body.getReader();
+        const chunks = [];
+        let received = 0;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+            if (total) {
+                const pct = Math.min(100, Math.round((received / total) * 100));
+                bar.style.width = pct + '%';
+                text.innerText = pct + '%';
+            } else {
+                text.innerText = (received / (1024 * 1024)).toFixed(1) + ' MB downloaded';
+            }
+        }
+
+        const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+        bar.style.width = '100%';
+        text.innerText = 'Download complete, opening installer...';
+
+        // wrapper blob/base64 নিয়ে সরাসরি ইনস্টলার খুলতে পারলে সেটা ব্যবহার করো
+        if (tryNativeInstallBlob(blob)) return;
+
+        // সাধারণ ব্রাউজার fallback: ডাউনলোড ট্রিগার করো, Android notification-এ
+        // ট্যাপ করলে ইনস্টলার খুলবে
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = 'neon-live-tv-update.apk';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+        showToast('✅ Download complete! Tap the notification to install.');
+        resetUpdateProgressUI();
+    } catch (err) {
+        console.error('Update download error:', err);
+        showToast('⚠️ Download failed, opening link in browser...', 'warning');
+        window.open(url, '_blank');
+        resetUpdateProgressUI();
+    }
+}
+
+/* wrapper app (Median / GoNative / WebIntoApp / নিজস্ব WebView bridge) যদি
+   window.Android বা window.median এর মতো একটা global object এক্সপোজ করে
+   এবং সেটার একটা installApk(url) মেথড থাকে, সেটা এখানে কল হবে —
+   ফলে fetch/download কিছুই লাগবে না, সরাসরি native installer খুলে যাবে। */
+function tryNativeInstall(url) {
+    try {
+        if (window.Android && typeof window.Android.installApk === 'function') {
+            window.Android.installApk(url); return true;
+        }
+        if (window.median && window.median.app && typeof window.median.app.installApk === 'function') {
+            window.median.app.installApk(url); return true;
+        }
+        if (window.AndroidInstaller && typeof window.AndroidInstaller.install === 'function') {
+            window.AndroidInstaller.install(url); return true;
+        }
+    } catch (e) { console.log('Native install bridge not available:', e); }
+    return false;
+}
+
+/* ব্রাউজারে ডাউনলোড করা blob সরাসরি native bridge-এ (base64 আকারে) পাঠিয়ে
+   ইনস্টলার খোলার চেষ্টা — শুধু তখনই কাজ করবে যদি wrapper app এই মেথডটা
+   নিজে থেকে এক্সপোজ করে (installApkFromBase64)। */
+function tryNativeInstallBlob(blob) {
+    try {
+        if (window.Android && typeof window.Android.installApkFromBase64 === 'function') {
+            const reader = new FileReader();
+            reader.onload = () => window.Android.installApkFromBase64(reader.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+            return true;
+        }
+    } catch (e) { console.log('Native blob-install bridge not available:', e); }
+    return false;
 }
 
 function handleAdultLoginFlow() {
@@ -1189,15 +1272,6 @@ function prepareStream(u1, u2, u3) {
     play(u1 || u2 || u3);
 }
 
-/* Detects if the Remote Playback (Chromecast) API is actually usable in this
-   WebView. A generic WebView.apk (built by no-code wrapper tools) usually does
-   NOT ship Google Cast integration, so this check hides the cast button
-   instead of showing a button that silently does nothing. */
-function isCastLikelySupported() {
-    return !!(window.chrome && window.chrome.cast) ||
-           (typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype);
-}
-
 function play(url, btn) {
     if(!url) return;
     document.body.classList.add('is-playing');
@@ -1216,14 +1290,7 @@ function play(url, btn) {
         playsInline: true,
         autoSize: false,
         autoOrientation: true,
-        /* Native browser Fullscreen API is unreliable inside a plain Android
-           WebView (it depends on the wrapper app implementing
-           WebChromeClient.onShowCustomView, which most no-code WebView
-           builders don't) — this is what caused fullscreen to only cover
-           half the screen. We disable it and use ArtPlayer's CSS-based
-           "fullscreenWeb" mode instead, which we fully control and which
-           now reuses the same full-page overlay used for landscape mode. */
-        fullscreen: false,
+        fullscreen: true,
         fullscreenWeb: true,
         pip: true,
         setting: true,
@@ -1238,6 +1305,16 @@ function play(url, btn) {
         theme: '#00ffff',
         volume: 1,
         moreVideoAttr: { playsInline: true },
+        controls: [
+            {
+                name: 'cast',
+                position: 'right',
+                index: 10,
+                html: '<i data-lucide="cast" style="width:20px;height:20px;"></i>',
+                tooltip: 'Cast to TV',
+                click: function () { castToDevice(); },
+            },
+        ],
         customType: {
             m3u8: function (video, url) {
                 if (Hls.isSupported()) {
@@ -1271,53 +1348,14 @@ function play(url, btn) {
     const playType = detectPlayType(url);
     if (playType) artOptions.type = playType;
 
-    /* Only attach the custom cast control when it's actually usable — never
-       pass an empty controls array, since that can suppress ArtPlayer's own
-       default buttons (zoom/aspect-ratio, flip, playback speed, screenshot,
-       pip, settings) in some ArtPlayer versions. */
-    if (isCastLikelySupported()) {
-        artOptions.controls = [
-            {
-                name: 'cast',
-                position: 'right',
-                index: 10,
-                html: '<i data-lucide="cast" style="width:20px;height:20px;"></i>',
-                tooltip: 'Cast to TV',
-                click: function () { castToDevice(); },
-            },
-        ];
-    }
-
     art = new Artplayer(artOptions);
     art.on('ready', () => { lucide.createIcons(); attemptAutoplay(); });
-
-    /* Whenever ArtPlayer's own fullscreen button is tapped, drive it through
-       our existing full-page overlay CSS (the same one used for landscape
-       rotation) so the WHOLE screen (header/nav/etc.) is actually covered —
-       this fixes the "goes fullscreen but only half the screen" bug. */
-    art.on('fullscreenWeb', (state) => {
-        document.body.classList.toggle('player-fullscreen-active', state);
-        if (state) {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
-            }
-        } else {
-            if (screen.orientation && screen.orientation.unlock) {
-                try { screen.orientation.unlock(); } catch (e) {}
-            }
-        }
-    });
-
     initGestureControls();
     window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function stopStream() {
     document.body.classList.remove('is-playing');
-    document.body.classList.remove('player-fullscreen-active');
-    if (screen.orientation && screen.orientation.unlock) {
-        try { screen.orientation.unlock(); } catch (e) {}
-    }
     const c = document.querySelector(".video-container");
     if(c && c.style.display === "block") {
         if(art) { art.destroy(false); art = null; }
@@ -1333,9 +1371,9 @@ function castToDevice() {
     if (videoEl.webkitShowPlaybackTargetPicker) {
         videoEl.webkitShowPlaybackTargetPicker();
     } else if (videoEl.remote && typeof videoEl.remote.prompt === 'function') {
-        videoEl.remote.prompt().catch(() => showToast('⚠️ No cast device found nearby, or casting isn\'t supported in this app build', 'warning'));
+        videoEl.remote.prompt().catch(() => showToast('No cast device found', 'warning'));
     } else {
-        showToast('⚠️ এই অ্যাপে Cast সাপোর্ট নেই (WebView এ Google Cast SDK যুক্ত করা নেই)', 'warning');
+        showToast('Casting is not supported', 'warning');
     }
 }
 
@@ -1467,6 +1505,24 @@ function renderFavs() {
 async function login(){ const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value; if(!e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; }); }
 async function register(){ const btn = document.getElementById("reg-btn"), e = document.getElementById("r-email").value, n = document.getElementById("r-name").value, p = document.getElementById("r-pass").value; if(!n || !e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.createUserWithEmailAndPassword(e, p).then(res => { db.collection("users").doc(res.user.uid).set({name:n, email:e, status:"active", isOnline: true}); }).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Create Account"; }); }
 function forgotPassword() { const e = document.getElementById("l-email").value; if(!e) return alert("Enter email first."); auth.sendPasswordResetEmail(e).then(() => alert("Reset link sent!")).catch(e => alert(e.message)); }
+
+/* --- PROFILE PAGE: DIGITAL CLOCK + DATE (12hr AM/PM) --- */
+const CLOCK_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function updateProfileClock() {
+    const timeEl = document.getElementById('clock-time');
+    const dateEl = document.getElementById('clock-date');
+    if (!timeEl || !dateEl) return;
+    const now = new Date();
+    let h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    timeEl.innerText = `${String(h).padStart(2,'0')}:${m}:${s} ${ap}`;
+    dateEl.innerText = `${now.getDate()} ${CLOCK_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+}
+setInterval(updateProfileClock, 1000);
+updateProfileClock();
 
 window.onload = () => lucide.createIcons();
 </script>
