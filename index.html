@@ -275,7 +275,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .nav.active{ color:var(--cyan); }
 .nav i{ width:22px; height:22px; margin-bottom:5px; }
 
-.video-container{ width:100%; aspect-ratio:16/9; background:#000; position:sticky; top: calc(65px + var(--safe-top)); z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
+/* ছোট (mini) প্লেয়ার: উচ্চতা সর্বোচ্চ স্ক্রিনের ৪০% — নিচে চ্যানেল লিস্ট দেখা যায়।
+   Expand বাটনে চাপলে বড় হয় (৬৮%), Fullscreen বাটনে পুরো স্ক্রিন। */
+.video-container{ width:min(100%, calc(40vh * 16 / 9)); margin:0 auto; aspect-ratio:16/9; background:#000; position:sticky; top: calc(65px + var(--safe-top)); z-index: 100; border-bottom: 1px solid var(--cyan); display: none; }
+body.player-large .video-container{ width:min(100%, calc(68vh * 16 / 9)); }
 #artplayer-app{ width:100%; height:100%; }
 /* --- ArtPlayer theme override (match neon cyan theme) --- */
 .art-video-player{ --art-theme: #00ffff; }
@@ -1340,6 +1343,9 @@ function prepareStream(u1, u2, u3) {
 function play(url, btn) {
     if(!url) return;
     document.body.classList.add('is-playing');
+    if (!(history.state && history.state.playing)) {
+        history.pushState({ playing: true, catDetails: !!(history.state && history.state.catDetails) }, '', location.hash || '#player');
+    }
     if(btn) { document.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
     const vCont = document.querySelector(".video-container");
     vCont.style.display = "block";
@@ -1371,6 +1377,14 @@ function play(url, btn) {
         volume: 1,
         moreVideoAttr: { playsInline: true },
         controls: [
+            {
+                name: 'expand',
+                position: 'right',
+                index: 11,
+                html: '<i data-lucide="maximize-2" style="width:20px;height:20px;"></i>',
+                tooltip: 'Expand / Shrink',
+                click: function () { document.body.classList.toggle('player-large'); layoutPlayerSpace(); },
+            },
             {
                 name: 'cast',
                 position: 'right',
@@ -1416,10 +1430,32 @@ function play(url, btn) {
     art = new Artplayer(artOptions);
     art.on('ready', () => { lucide.createIcons(); attemptAutoplay(); });
     initGestureControls();
+    layoutPlayerSpace();
+    if (window.ResizeObserver && !vCont._ro) { vCont._ro = new ResizeObserver(layoutPlayerSpace); vCont._ro.observe(vCont); }
     window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function stopStream() {
+/* প্লেয়ার চালু হলে ব্রাউজার হিস্ট্রিতে একটা এন্ট্রি বসে, যাতে PC/ব্রাউজারের Back বাটন
+   চাপলে অ্যাপ বন্ধ না হয়ে শুধু প্লেয়ার বন্ধ হয়। */
+/* প্লেয়ার + সার্ভার বাটনের উচ্চতা বাদ দিয়ে বাকি জায়গায় চ্যানেল লিস্ট ফিট করায়,
+   তাই প্লেয়ারের নিচে লিস্ট স্ক্রল করে দেখা যায়। */
+function layoutPlayerSpace() {
+    const v = document.querySelector('.video-container'), s = document.getElementById('server-box'), m = document.querySelector('.main');
+    if (!v || !m) return;
+    if (v.style.display === 'block' && !(window.matchMedia('(orientation: landscape)').matches && document.body.classList.contains('is-playing') && window.innerWidth < 992)) {
+        const h = v.offsetHeight + (s && s.style.display !== 'none' ? s.offsetHeight : 0);
+        m.style.height = `calc(100vh - 65px - var(--safe-top) - ${h}px)`;
+    } else {
+        m.style.height = '';
+    }
+}
+window.addEventListener('resize', layoutPlayerSpace);
+let skipNextPop = false;
+function isPlayerOpen() {
+    const c = document.querySelector(".video-container");
+    return !!(c && c.style.display === "block");
+}
+function stopStream(fromPopstate) {
     document.body.classList.remove('is-playing');
     const c = document.querySelector(".video-container");
     if(c && c.style.display === "block") {
@@ -1427,6 +1463,12 @@ function stopStream() {
         c.style.display = "none";
         document.getElementById("server-box").style.display = "none";
         toggleMatchFilters(false);
+        document.body.classList.remove('player-large');
+        layoutPlayerSpace();
+        if (fromPopstate !== true && history.state && history.state.playing) {
+            skipNextPop = true;
+            history.back();
+        }
     }
 }
 
@@ -1558,6 +1600,8 @@ function closeCategory(fromPopstate) {
     setTimeout(focusFirstInActivePage, 60);
 }
 window.addEventListener('popstate', () => {
+    if (skipNextPop) { skipNextPop = false; return; }
+    if (isPlayerOpen()) { stopStream(true); return; }
     const detailsEl = document.getElementById("cat-details");
     if (detailsEl && detailsEl.style.display === "block") { closeCategory(true); }
 });
