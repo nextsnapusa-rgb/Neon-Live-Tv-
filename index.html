@@ -165,7 +165,9 @@ body{ background:var(--bg); color:var(--white); font-family: 'Roboto', sans-seri
 /* --- AUTH UI & PROCESSING BARS --- */
 #auth-screen{ position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; padding:25px; z-index:9999; }
 .auth-box{ width:100%; max-width:320px; background:var(--surface); border:1px solid rgba(0,255,255,0.2); border-radius:24px; padding:30px; }
-.auth-input{ width:100%; padding:14px; margin-bottom:15px; border: 1px solid #222; border-radius:12px; background:#050505; color:#fff; outline: none; }
+.auth-input{ width:100%; padding:14px; margin-bottom:15px; border: 1px solid #222; border-radius:12px; background:#050505; color:#fff; outline: none; caret-color: var(--cyan); }
+.auth-input:focus{ border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,255,255,0.5); background:#0a0a0a; }
+input, textarea { -webkit-user-select: text; user-select: text; }
 .auth-btn{ width:100%; height: 52px; border:none; border-radius:12px; background: var(--cyan); color:#000; font-weight: 700; cursor:pointer; display: flex; align-items: center; justify-content: center; }
 .btn-loader { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; color: #000; }
 .loader-bars-sm { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
@@ -339,7 +341,7 @@ video{ width:100%; height:100%; object-fit:contain; }
         <h1 id="brand-name">NEON <span>LIVE</span> TV</h1>
         <p id="brand-tagline">Premium Streaming Experience</p>
     </div>
-    <div class="splash-version">VERSION 1.2.0</div>
+    <div class="splash-version">VERSION 1.2.1</div>
 </div>
 
 <!-- UPDATE POPUP -->
@@ -368,19 +370,19 @@ video{ width:100%; height:100%; object-fit:contain; }
 <div id="auth-screen">
     <div class="auth-box" id="login-box">
         <h2 style="text-align:center; margin-bottom:20px; ">Login</h2>
-        <input type="email" id="l-email" class="auth-input" placeholder="Email address">
-        <input type="password" id="l-pass" class="auth-input" placeholder="Password">
-        <p style="text-align:right; font-size:11px; margin-top:-10px; margin-bottom:15px;"><span style="color:var(--dim); cursor:pointer;" onclick="forgotPassword()">Forgot Password?</span></p>
-        <button class="auth-btn" id="login-btn" onclick="login()">Sign in</button>
-        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">No account? <span style="color:var(--cyan);cursor:pointer;" onclick="toggleAuth()">Register</span></p>
+        <input type="email" id="l-email" class="auth-input" tabindex="0" placeholder="Email address">
+        <input type="password" id="l-pass" class="auth-input" tabindex="0" placeholder="Password">
+        <p style="text-align:right; font-size:11px; margin-top:-10px; margin-bottom:15px;"><span tabindex="0" style="color:var(--dim); cursor:pointer;" onclick="forgotPassword()">Forgot Password?</span></p>
+        <button class="auth-btn" id="login-btn" tabindex="0" onclick="login()">Sign in</button>
+        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">No account? <span tabindex="0" style="color:var(--cyan);cursor:pointer;" onclick="toggleAuth()">Register</span></p>
     </div>
     <div class="auth-box" id="register-box" style="display:none;">
         <h2 style="text-align:center; margin-bottom:20px; ">Register</h2>
-        <input type="text" id="r-name" class="auth-input" placeholder="Full name">
-        <input type="email" id="r-email" class="auth-input" placeholder="Email address">
-        <input type="password" id="r-pass" class="auth-input" placeholder="Password">
-        <button class="auth-btn" id="reg-btn" onclick="register()">Create account</button>
-        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">Already account? <span style="color:cyan;cursor:pointer;" onclick="toggleAuth()">Login</span></p>
+        <input type="text" id="r-name" class="auth-input" tabindex="0" placeholder="Full name">
+        <input type="email" id="r-email" class="auth-input" tabindex="0" placeholder="Email address">
+        <input type="password" id="r-pass" class="auth-input" tabindex="0" placeholder="Password">
+        <button class="auth-btn" id="reg-btn" tabindex="0" onclick="register()">Create account</button>
+        <p style="margin-top:25px;font-size:12px;text-align:center;color:#666;">Already account? <span tabindex="0" style="color:cyan;cursor:pointer;" onclick="toggleAuth()">Login</span></p>
     </div>
 </div>
 
@@ -395,7 +397,7 @@ video{ width:100%; height:100%; object-fit:contain; }
     </div>
 
     <div id="search-container" style="display:none; padding:12px; background:#000; border-bottom:1px solid #222;">
-        <input type="text" id="search-input" class="auth-input" style="width:100%; border-radius:10px; margin-bottom:0;" placeholder="Search..." onkeyup="filterItems()">
+        <input type="text" id="search-input" class="auth-input" tabindex="0" style="width:100%; border-radius:10px; margin-bottom:0;" placeholder="Search..." onkeyup="filterItems()">
     </div>
 
     <div class="video-container"><div id="artplayer-app"></div></div>
@@ -500,10 +502,12 @@ const firebaseConfig = {
     appId: "1:593711709165:web:7de95cc0e6f2b8da3dc5e4"
 };
 
-const CURRENT_VERSION = "1.2.0";
+const CURRENT_VERSION = "1.2.1";
 const APP_SHARE_LINK = "https://neon-live-tv-apk-download.vercel.app/";
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(), db = firebase.firestore();
+/* অফলাইন ক্যাশ চালু: দ্বিতীয়বার থেকে চ্যানেল প্রায় সঙ্গে সঙ্গে লোড হবে */
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 /* --- SPLASH FX (particles + streaks) --- */
 (function initSplashFX(){
@@ -618,6 +622,48 @@ function loadingHTML(text) {
     return `<div class="loading-spinner-wrap"><div class="loading-ring"></div><p>${text || 'Loading...'}</p></div>`;
 }
 
+/* ============================================================
+   FAST CARD RENDERING
+   - পুরো লিস্ট একবারে না বানিয়ে ৩৬টা করে ছোট ছোট ব্যাচে দেখায়
+     (স্ক্রল করলে নিচের দিকে নিজে নিজে আরও লোড হয়)
+   - সার্চ করলে সব ডেটা থেকেই খুঁজে দেখায়, শুধু দেখা-যাচ্ছে-এমনগুলো থেকে না
+   ============================================================ */
+const CARD_CHUNK = 36;
+function renderCards(listEl, items, build, emptyHTML) {
+    if (!listEl) return;
+    listEl._items = items;
+    listEl._build = build;
+    listEl._empty = emptyHTML || "<p style='color:#555; grid-column:1/-1; text-align:center; padding:20px 0;'>Nothing here yet.</p>";
+    listEl._query = '';
+    paintCards(listEl);
+}
+function paintCards(listEl) {
+    if (listEl._io) { listEl._io.disconnect(); listEl._io = null; }
+    const q = listEl._query || '';
+    const items = q ? listEl._items.filter(i => (i.name || '').toLowerCase().includes(q)) : listEl._items;
+    if (!items.length) { listEl.innerHTML = listEl._empty; return; }
+
+    const hasIO = 'IntersectionObserver' in window;
+    if (!hasIO) { listEl.innerHTML = items.map(listEl._build).join(''); return; }
+
+    listEl.innerHTML = '';
+    let shown = 0;
+    const sentinel = document.createElement('div');
+    sentinel.style.cssText = 'grid-column:1/-1; height:1px;';
+    const next = () => {
+        sentinel.remove();
+        const slice = items.slice(shown, shown + CARD_CHUNK);
+        shown += slice.length;
+        listEl.insertAdjacentHTML('beforeend', slice.map(listEl._build).join(''));
+        if (shown < items.length) { listEl.appendChild(sentinel); listEl._io.observe(sentinel); }
+        else { listEl._io.disconnect(); listEl._io = null; }
+    };
+    listEl._io = new IntersectionObserver(entries => {
+        if (entries.some(e => e.isIntersecting)) next();
+    }, { root: document.querySelector('.main'), rootMargin: '700px 0px' });
+    next();
+}
+
 function showToast(msg, type, duration) {
     const c = document.getElementById('toast-container');
     if(!c) return;
@@ -709,6 +755,7 @@ auth.onAuthStateChanged(user => {
         });
     } else {
         document.getElementById("splash-screen").style.display="none"; document.getElementById("app").style.display="none"; document.getElementById("auth-screen").style.display="flex";
+        setTimeout(focusAuthFirstField, 100);
     }
 });
 
@@ -716,7 +763,16 @@ auth.onAuthStateChanged(user => {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { const f = document.activeElement; if (f && f.onclick) f.click(); return; }
 
+    const activeTag = document.activeElement && document.activeElement.tagName;
+    const isTypingField = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+        // ইনপুট ফিল্ডে টাইপ করার সময় Left/Right কে নিজের টেক্সট কার্সার
+        // নড়ানোর জন্য ছেড়ে দাও — নাহলে D-pad focus অন্য এলিমেন্টে লাফ দেয়
+        // এবং মনে হয় যেন লেখা ঠিকমতো বসছে না।
+        if (isTypingField && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+            return;
+        }
         moveTvFocus(e.key);
         e.preventDefault();
         return;
@@ -927,7 +983,7 @@ function loadData() {
         if(totalNotifs > lastSeen) { badge.innerText = totalNotifs - lastSeen; badge.style.display="flex"; } else { badge.style.display="none"; }
         const l = document.getElementById("notif-list-page");
         l.innerHTML = snap.empty ? "<p style='color:#555; text-align:center; padding:30px 0;'>No notifications yet.</p>" : "";
-        snap.forEach(doc => { const n = doc.data(); l.innerHTML += `<div style="background:var(--card-bg); padding:15px; border-radius:15px; border-left:4px solid var(--cyan); margin-bottom:10px;"><h4>${n.title}</h4><p style="font-size:12px; color:#aaa;">${n.message}</p></div>`; });
+        if (!snap.empty) l.innerHTML = snap.docs.map(doc => { const n = doc.data(); return `<div style="background:var(--card-bg); padding:15px; border-radius:15px; border-left:4px solid var(--cyan); margin-bottom:10px;"><h4>${n.title}</h4><p style="font-size:12px; color:#aaa;">${n.message}</p></div>`; }).join('');
     });
 
     db.collection("events").onSnapshot(snap => {
@@ -938,9 +994,9 @@ function loadData() {
 
     db.collection("categories").onSnapshot(snap => {
         const list = document.getElementById("category-list");
-        if (snap.empty) { list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center; padding: 20px 0;'>No categories yet.</p>"; return; }
-        list.innerHTML = "";
-        snap.forEach(doc => { const cat = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="openCategory('${cat.name}')"><img src="${cat.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${cat.name}</p></div>`; });
+        const cats = snap.docs.map(d => d.data());
+        renderCards(list, cats, cat => `<div class="card" tabindex="0" onclick="openCategory('${cat.name}')"><img loading="lazy" decoding="async" src="${cat.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${cat.name}</p></div>`,
+            "<p style='color:#555; grid-column:1/-1; text-align:center; padding:20px 0;'>No categories yet.</p>");
     });
 
     db.collection("settings").doc("adult_config").onSnapshot(doc => { if (doc.exists) { adultConfig = doc.data(); document.getElementById("adult-folder-menu").style.display = adultConfig.isVisible ? "flex" : "none"; } });
@@ -1184,10 +1240,10 @@ function handleAdultLoginFlow() {
         const authArea = document.getElementById("adult-auth-section");
         const listArea = document.getElementById("adult-channel-list");
         if(!userData.adultPin) {
-            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><input type="number" id="new-adult-pin" class="auth-input" placeholder="Set 4 Digit PIN"><button class="auth-btn" onclick="registerAdultPin()">Set PIN</button></div>`;
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Set Adult PIN</h3><input type="number" id="new-adult-pin" class="auth-input" tabindex="0" placeholder="Set 4 Digit PIN"><button class="auth-btn" tabindex="0" onclick="registerAdultPin()">Set PIN</button></div>`;
             authArea.style.display = "block"; listArea.style.display = "none";
         } else {
-            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><input type="number" id="login-adult-pin" class="auth-input" placeholder="Enter PIN"><button class="auth-btn" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
+            authArea.innerHTML = `<div class="adult-auth-box"><h3>Adult Login</h3><input type="number" id="login-adult-pin" class="auth-input" tabindex="0" placeholder="Enter PIN"><button class="auth-btn" tabindex="0" onclick="verifyAdultPin('${userData.adultPin}')">Verify & Enter</button></div>`;
             authArea.style.display = "block"; listArea.style.display = "none";
         }
     });
@@ -1207,14 +1263,25 @@ function verifyAdultPin(correctPin) {
     } else alert("Incorrect PIN!");
 }
 
+let unsubAdult = null;
 function loadAdultChannels() {
     const list = document.getElementById("adult-channel-list");
     list.innerHTML = loadingHTML('Loading adult channels...');
-    db.collection("adult_channels").onSnapshot(snap => {
-        if (snap.empty) { list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center; padding:20px 0;'>No channels yet.</p>"; return; }
-        list.innerHTML = "";
-        snap.forEach(doc => { const ch = doc.data(); list.innerHTML += `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`; });
+    if (unsubAdult) { unsubAdult(); unsubAdult = null; }
+    unsubAdult = db.collection("adult_channels").onSnapshot(snap => {
+        const items = snap.docs.map(d => d.data());
+        renderCards(list, items, ch => `<div class="card" tabindex="0" onclick="prepareStream('${ch.url1}','${ch.url2}')"><img loading="lazy" decoding="async" src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`,
+            "<p style='color:#555; grid-column:1/-1; text-align:center; padding:20px 0;'>No channels yet.</p>");
     });
+}
+
+/* চ্যানেল ক্যাশ: একই ক্যাটাগরি আবার খুললে সঙ্গে সঙ্গে দেখায়, পেছনে নতুন ডেটা আপডেট হয় */
+const channelCache = {};
+let unsubChannels = null;
+function channelCardHTML(ch) {
+    const chanData = { name: ch.name, logo: ch.logo || DEFAULT_LOGO, u1: ch.url1 || '', u2: ch.url2 || '', u3: ch.url3 || '' };
+    const favClass = isFav(chanData.name, chanData.u1) ? ' is-fav' : '';
+    return `<div class="card${favClass}" tabindex="0" data-channel="${encodeChan(chanData)}" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img loading="lazy" decoding="async" src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`;
 }
 
 function openCategory(name) {
@@ -1225,16 +1292,14 @@ function openCategory(name) {
     setTimeout(focusFirstInActivePage, 60);
     document.getElementById("selected-cat-title").innerText = name;
     const list = document.getElementById("filtered-channel-list");
-    list.innerHTML = loadingHTML('Loading channels...');
-    db.collection("channels").where("category", "==", name).onSnapshot(snap => {
-        if (snap.empty) { list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center; padding:20px 0;'>No channels in this folder yet.</p>"; return; }
-        list.innerHTML = "";
-        snap.forEach(doc => {
-            const ch = doc.data();
-            const chanData = { name: ch.name, logo: ch.logo || DEFAULT_LOGO, u1: ch.url1 || '', u2: ch.url2 || '', u3: ch.url3 || '' };
-            const favClass = isFav(chanData.name, chanData.u1) ? ' is-fav' : '';
-            list.innerHTML += `<div class="card${favClass}" tabindex="0" data-channel="${encodeChan(chanData)}" onclick="prepareStream('${ch.url1}','${ch.url2}','${ch.url3}')"><img src="${ch.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(ch.name)}</p></div>`;
-        });
+    const emptyMsg = "<p style='color:#555; grid-column:1/-1; text-align:center; padding:20px 0;'>No channels in this folder yet.</p>";
+    if (unsubChannels) { unsubChannels(); unsubChannels = null; }
+    if (channelCache[name]) renderCards(list, channelCache[name], channelCardHTML, emptyMsg);
+    else list.innerHTML = loadingHTML('Loading channels...');
+    unsubChannels = db.collection("channels").where("category", "==", name).onSnapshot(snap => {
+        const items = snap.docs.map(d => d.data());
+        channelCache[name] = items;
+        renderCards(list, items, channelCardHTML, emptyMsg);
     });
 }
 
@@ -1479,9 +1544,14 @@ function switchPage(id, el){
 }
 
 function toggleSearch() { const c = document.getElementById("search-container"); c.style.display = c.style.display === "block" ? "none" : "block"; }
-function filterItems() { const q = document.getElementById("search-input").value.toLowerCase(); document.querySelectorAll(".match-card2, .card").forEach(item => { item.style.display = item.innerText.toLowerCase().includes(q) ? "" : "none"; }); }
+function filterItems() {
+    const q = document.getElementById("search-input").value.toLowerCase().trim();
+    document.querySelectorAll(".grid").forEach(g => { if (g._items && g._query !== q) { g._query = q; paintCards(g); } });
+    document.querySelectorAll(".match-card2").forEach(item => { item.style.display = item.innerText.toLowerCase().includes(q) ? "" : "none"; });
+}
 function logout(){ if(confirm('Logout?')) { db.collection("users").doc(auth.currentUser.uid).update({ isOnline: false }).then(() => auth.signOut()); } }
 function closeCategory(fromPopstate) {
+    if (unsubChannels) { unsubChannels(); unsubChannels = null; }
     document.getElementById("cat-main").style.display = "block";
     document.getElementById("cat-details").style.display = "none";
     if (!fromPopstate && history.state && history.state.catDetails) { history.back(); }
@@ -1491,15 +1561,29 @@ window.addEventListener('popstate', () => {
     const detailsEl = document.getElementById("cat-details");
     if (detailsEl && detailsEl.style.display === "block") { closeCategory(true); }
 });
-function toggleAuth(){ document.getElementById("login-box").style.display = document.getElementById("login-box").style.display === "none" ? "block" : "none"; document.getElementById("register-box").style.display = document.getElementById("register-box").style.display === "none" ? "block" : "none"; }
+function toggleAuth(){
+    document.getElementById("login-box").style.display = document.getElementById("login-box").style.display === "none" ? "block" : "none";
+    document.getElementById("register-box").style.display = document.getElementById("register-box").style.display === "none" ? "block" : "none";
+    setTimeout(focusAuthFirstField, 60);
+}
+
+/* লগইন/রেজিস্টার স্ক্রিনে যেটা এখন দেখা যাচ্ছে, তার প্রথম ইনপুট ফিল্ডে ফোকাস বসায় —
+   Android TV রিমোট দিয়ে সরাসরি টাইপ করা শুরু করা যায় */
+function focusAuthFirstField() {
+    const box = document.getElementById("login-box").style.display !== "none"
+        ? document.getElementById("login-box")
+        : document.getElementById("register-box");
+    const first = box && box.querySelector('input');
+    if (first) first.focus({ preventScroll: true });
+}
 
 function showCopyright() { alert("Copyright Disclaimer:🔏\n\Neon Live TV does not host or own any video content. All live streams, logos, trademarks, and media belong to their respective owners. We only provide access to publicly available content from third-party sources. If you are the copyright owner and believe any content infringes your rights, please contact us. We will review and remove the reported content promptly if necessary."); }
 function showPrivacy() { alert("Privacy Policy:📝\n\Neon Live TV respects your privacy. We do not collect or store personal information unless required to provide app functionality. The app may use third-party services such as Firebase for analytics, authentication, or notifications. These services may collect limited technical information according to their own privacy policies. By using this app, you agree to this Privacy Policy."); }
 
 function renderFavs() {
-    const list = document.getElementById("favorites-list"); list.innerHTML = "";
-    if(favorites.length === 0) list.innerHTML = "<p style='color:#555; grid-column: 1/5; text-align:center;'>Empty.</p>";
-    favorites.forEach(f => { list.innerHTML += `<div class="card is-fav" tabindex="0" data-channel="${encodeChan(f)}" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img src="${f.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(f.name)}</p></div>`; });
+    const list = document.getElementById("favorites-list");
+    renderCards(list, favorites.slice(), f => `<div class="card is-fav" tabindex="0" data-channel="${encodeChan(f)}" onclick="prepareStream('${f.u1}','${f.u2}','${f.u3}')"><img loading="lazy" decoding="async" src="${f.logo || DEFAULT_LOGO}" onerror="this.onerror=null;this.src='${DEFAULT_LOGO}'"><p>${marqueeName(f.name)}</p></div>`,
+        "<p style='color:#555; grid-column:1/-1; text-align:center;'>Empty.</p>");
 }
 
 async function login(){ const btn = document.getElementById("login-btn"), e = document.getElementById("l-email").value, p = document.getElementById("l-pass").value; if(!e || !p) return alert("Fill all!"); btn.disabled = true; btn.innerHTML = btnLoaderHTML; auth.signInWithEmailAndPassword(e, p).catch(err => { alert(err.message); btn.disabled = false; btn.innerHTML = "Sign in"; }); }
